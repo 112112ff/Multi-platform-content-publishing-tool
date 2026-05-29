@@ -1,11 +1,13 @@
-import { platformProfiles } from "./profiles";
-import { createStubAdapter } from "./stubAdapter";
+import { bilibiliAdapter } from "./bilibili";
+import { wechatAdapter } from "./wechat";
+import { xiaohongshuAdapter } from "./xiaohongshu";
+import { zhihuAdapter } from "./zhihu";
 
 export const platformAdapters = [
-  createStubAdapter(platformProfiles.wechat),
-  createStubAdapter(platformProfiles.zhihu),
-  createStubAdapter(platformProfiles.bilibili),
-  createStubAdapter(platformProfiles.xiaohongshu),
+  wechatAdapter,
+  zhihuAdapter,
+  bilibiliAdapter,
+  xiaohongshuAdapter,
 ];
 
 export const getPlatformAdapter = (platformId: string) =>
