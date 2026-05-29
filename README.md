@@ -33,6 +33,7 @@
 - [架构设计](./docs/02-architecture-plan.md)
 - [团队协作与分工](./docs/03-team-collaboration.md)
 - [提交规则与验收清单](./docs/04-delivery-rules-checklist.md)
+- [评审策略与得分点](./docs/05-review-strategy.md)
 
 ## 技术栈
 
