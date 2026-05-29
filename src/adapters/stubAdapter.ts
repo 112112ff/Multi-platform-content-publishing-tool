@@ -12,14 +12,17 @@ export function createStubAdapter(profile: PlatformProfile): PlatformAdapter {
     name: profile.name,
     profile,
     adapt(input: ContentInput): AdaptedContent {
+      const fallbackTitle = `${profile.name}内容预览`;
+      const fallbackBody = "输入原始内容后，这里会生成平台适配版本。";
+
       return {
         platformId: profile.id,
-        title: input.title,
-        body: input.body,
-        summary: input.body.slice(0, 80),
+        title: input.title || fallbackTitle,
+        body: input.body || fallbackBody,
+        summary: (input.body || fallbackBody).slice(0, 80),
         tags: input.tags,
         strategyNotes: [
-          `${profile.name}适配器将在后续 PR 中接入具体改写规则。`,
+          `${profile.name}版本将围绕“${profile.contentStrategy}”进行适配。`,
         ],
       };
     },
