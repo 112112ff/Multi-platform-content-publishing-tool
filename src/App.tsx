@@ -1,3 +1,8 @@
+import { useState } from "react";
+import { ContentEditor } from "./components/ContentEditor";
+import { emptyContentInput, sampleContentInput } from "./data/sampleContent";
+import type { ContentInput } from "./types/content";
+
 const workflowSteps = [
   "输入原始内容",
   "选择目标平台",
@@ -9,6 +14,8 @@ const workflowSteps = [
 const platforms = ["公众号", "知乎", "B站", "小红书"];
 
 function App() {
+  const [content, setContent] = useState<ContentInput>(emptyContentInput);
+
   return (
     <main className="app-shell">
       <section className="intro-panel" aria-labelledby="product-title">
@@ -21,14 +28,12 @@ function App() {
 
       <section className="workspace" aria-label="工作台概览">
         <div className="editor-preview">
-          <div>
-            <span className="section-label">原始内容</span>
-            <h2>创作者输入区</h2>
-            <p>
-              后续将在这里填写标题、正文、标签、封面图和视频链接，作为各平台适配的统一内容源。
-            </p>
-          </div>
-          <button type="button">开始适配</button>
+          <ContentEditor
+            content={content}
+            onChange={setContent}
+            onLoadSample={() => setContent(sampleContentInput)}
+            onReset={() => setContent(emptyContentInput)}
+          />
         </div>
 
         <div className="platform-grid" aria-label="目标平台">
@@ -36,7 +41,11 @@ function App() {
             <article className="platform-card" key={platform}>
               <span>{platform}</span>
               <strong>待生成</strong>
-              <p>平台风格、格式校验和发布模拟将在后续 PR 中接入。</p>
+              <p>
+                {content.title
+                  ? `已收到《${content.title}》，后续 PR 将接入平台适配。`
+                  : "平台风格、格式校验和发布模拟将在后续 PR 中接入。"}
+              </p>
             </article>
           ))}
         </div>
