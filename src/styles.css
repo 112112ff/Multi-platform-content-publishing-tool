@@ -28,6 +28,32 @@ button {
   padding: 0.85rem 1rem;
 }
 
+input,
+textarea {
+  border: 1px solid #cbd8d2;
+  border-radius: 6px;
+  color: #172026;
+  font: inherit;
+  padding: 0.8rem 0.9rem;
+  width: 100%;
+}
+
+textarea {
+  line-height: 1.65;
+  resize: vertical;
+}
+
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+legend {
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+}
+
 .app-shell {
   display: grid;
   gap: 1.5rem;
@@ -91,9 +117,6 @@ h2 {
 }
 
 .editor-preview {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
   min-height: 320px;
 }
 
@@ -144,6 +167,64 @@ h2 {
   padding: 0.85rem;
 }
 
+.content-editor {
+  display: grid;
+  gap: 1rem;
+}
+
+.content-editor label {
+  display: grid;
+  gap: 0.45rem;
+  font-weight: 800;
+}
+
+.content-editor input,
+.content-editor textarea {
+  font-weight: 400;
+}
+
+.editor-actions {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.secondary-button {
+  background: #eef4f0;
+  color: #176b87;
+}
+
+.field-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.platform-toggle-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.platform-toggle {
+  align-items: center;
+  background: #eef4f0;
+  border-radius: 6px;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.platform-toggle input {
+  width: auto;
+}
+
 @media (max-width: 820px) {
   .app-shell {
     padding: 1rem;
@@ -154,6 +235,11 @@ h2 {
   }
 
   .flow ol {
+    grid-template-columns: 1fr;
+  }
+
+  .field-grid,
+  .platform-toggle-grid {
     grid-template-columns: 1fr;
   }
 }
