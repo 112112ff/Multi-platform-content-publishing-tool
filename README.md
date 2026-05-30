@@ -125,6 +125,7 @@ npm run test:run
 - [提交规则与验收清单](./docs/04-delivery-rules-checklist.md)
 - [评审策略与得分点](./docs/05-review-strategy.md)
 - [Demo 录制脚本](./docs/06-demo-script.md)
+- [下一轮 Agent-first 重构计划](./docs/07-next-agent-first-redesign-plan.md)
 
 ## 团队协作
 
