@@ -64,25 +64,25 @@ export type AgentOperationPlan = {
 export const integrationBlueprints = [
   {
     id: "account-channel",
-    inspiredBy: "Postiz",
-    adoptedPattern:
-      "把平台账号抽象成 channel/integration，再由排期任务引用账号通道。",
+    problem: "矩阵运营需要同时管理多个平台账号、发布节奏和授权状态。",
+    method:
+      "将平台账号抽象为 AccountChannel，由发布计划引用具体账号通道。",
     appliedAs:
       "AccountChannel 使用 official-oauth、browser-session、cookie-vault 三种授权模式，并保留 canSchedule 与 dailyPostLimit。",
   },
   {
     id: "hotspot-crawler",
-    inspiredBy: "MediaCrawler",
-    adoptedPattern:
-      "按 platform/client/store 分层组织热点、评论、创作者数据采集。",
+    problem: "Agent 生成内容前需要理解平台热点、评论痛点和同类主题表达。",
+    method:
+      "将热点搜索、创作者观察和评论挖掘统一抽象为 HotspotCrawlTask。",
     appliedAs:
       "HotspotCrawlTask 只描述采集意图和限流参数，真实抓取可由本地 worker 或后端沙盒执行。",
   },
   {
     id: "upload-runner",
-    inspiredBy: "social-auto-upload / bilibili-upload-tool",
-    adoptedPattern:
-      "每个平台一个 uploader，统一接收视频、标题、标签、发布时间和登录态。",
+    problem: "不同平台需要不同的媒体素材、登录状态、发布时间和确认流程。",
+    method:
+      "将一次待发布动作抽象为 PublishJob，并按平台能力选择执行路径。",
     appliedAs:
       "PublishJob 根据平台能力选择 official-api、browser-automation 或 manual-export，默认先进入 needs-confirmation。",
   },
