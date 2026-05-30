@@ -142,6 +142,8 @@ function App() {
   const [agentMessages, setAgentMessages] = useState<string[]>([
     "你可以直接说目标，例如：载入示例、选择平台、设置外部接收端、新增快手平台。",
   ]);
+  const [showAdvancedWorkspace, setShowAdvancedWorkspace] = useState(false);
+  const [showCustomPlatformCenter, setShowCustomPlatformCenter] = useState(false);
   const [publishProgress, setPublishProgress] = useState<Record<string, string>>({});
   const [editedContent, setEditedContent] = useState<Record<string, AdaptedContent>>(
     storedDraft?.editedContent ?? {},
@@ -254,6 +256,21 @@ function App() {
       done: deliveryMode === "webhook" ? Boolean(webhookUrl.trim()) : publishHistory.length > 0,
     },
   ];
+  const selectedPlatformNames = previews.map((preview) => preview.platformName);
+  const assistantSummary = {
+    intent: hasContent ? "已识别到待发布内容" : "等待你描述要发布的内容",
+    audience: content.tags.length ? content.tags.slice(0, 3).join("、") : "可在一句话里说明目标人群",
+    platforms: selectedPlatformNames.length
+      ? selectedPlatformNames.join("、")
+      : "助手会根据需求选择平台",
+    nextStep: !hasContent
+      ? "先告诉助手你要发布什么"
+      : blockedCount
+        ? "先处理发布体检里的阻塞项"
+        : deliveryMode === "webhook" && !webhookUrl
+          ? "填写外部接收端地址"
+          : "可以预览平台版本或开始投递",
+  };
 
   const publishAll = async () => {
     if (!hasContent || !previews.length) {
@@ -599,9 +616,9 @@ function App() {
       <header className="top-bar">
         <div>
           <p className="eyebrow">ContentBridge MVP</p>
-          <h1 id="product-title">创作者多平台发布控制台</h1>
+          <h1 id="product-title">一句话生成多平台发布方案</h1>
           <p className="lead">
-            一句话让助手准备内容，一份稿件生成多个平台版本，并通过本地演示或外部接收端完成投递验证。
+            面向普通创作者的内容发布助手。先说清楚你想发什么，系统再帮你改写、选平台、检查风险和准备投递。
           </p>
         </div>
         <div className="delivery-console">
@@ -664,25 +681,12 @@ function App() {
         </div>
       </section>
 
-      <section className="guided-flow" aria-label="演示流程引导">
-        {guidedSteps.map((step, index) => (
-          <div
-            className={step.done ? "flow-card done" : "flow-card"}
-            key={step.title}
-          >
-            <span>{String(index + 1).padStart(2, "0")}</span>
-            <strong>{step.title}</strong>
-            <p>{step.detail}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="agent-panel" aria-labelledby="agent-title">
+      <section className="agent-panel primary-agent" aria-labelledby="agent-title">
         <div>
           <span className="section-label">发布助手 Agent</span>
-          <h2 id="agent-title">用一句话调用功能</h2>
+          <h2 id="agent-title">先告诉我你的发布目标</h2>
           <p>
-            这个助手是本地规则引擎，会调用页面里的真实功能：载入内容、选择平台、配置外部接收端、新增平台和生成初稿。
+            不需要先理解平台规则。你可以直接描述内容、受众、想发的平台或投递方式，助手会分析需求并调用对应功能。
           </p>
           <div className="agent-examples">
             {agentExamples.map((example) => (
@@ -704,17 +708,35 @@ function App() {
           }}
         >
           <label>
-            说出你的发布目标
+            用一句话描述需求
             <textarea
               value={agentInput}
               onChange={(event) => setAgentInput(event.target.value)}
-              placeholder="例如：帮我写一篇关于 AI 学习效率的内容，并选择小红书和抖音"
-              rows={3}
+              placeholder="例如：我想发一篇给大学生看的 AI 学习效率内容，重点发小红书和抖音"
+              rows={4}
             />
           </label>
           <button type="submit" className="publish-button">
-            让助手执行
+            让助手分析并执行
           </button>
+          <div className="assistant-summary" aria-label="助手需求理解">
+            <div>
+              <span>需求状态</span>
+              <strong>{assistantSummary.intent}</strong>
+            </div>
+            <div>
+              <span>受众/标签</span>
+              <strong>{assistantSummary.audience}</strong>
+            </div>
+            <div>
+              <span>目标平台</span>
+              <strong>{assistantSummary.platforms}</strong>
+            </div>
+            <div>
+              <span>建议下一步</span>
+              <strong>{assistantSummary.nextStep}</strong>
+            </div>
+          </div>
           <div className="agent-log" aria-live="polite">
             {agentMessages.map((message) => (
               <p key={message}>{message}</p>
@@ -723,26 +745,65 @@ function App() {
         </form>
       </section>
 
-      <section className="workspace" aria-label="工作台概览">
-        <aside className="editor-preview">
-          <ContentEditor
-            content={content}
-            platformOptions={platformOptions}
-            onChange={changeContent}
-            onLoadSample={() => changeContent(sampleContentInput)}
-            onReset={() => changeContent(emptyContentInput)}
-          />
-        </aside>
-
-        <PlatformPreviewGrid
-          previews={previews}
-          hasContent={hasContent}
-          onUpdateContent={updatePlatformContent}
-          onResetContent={resetPlatformContent}
-          editedPlatformIds={Object.keys(editedContent)}
-        />
+      <section className="guided-flow" aria-label="演示流程引导">
+        {guidedSteps.map((step, index) => (
+          <div
+            className={step.done ? "flow-card done" : "flow-card"}
+            key={step.title}
+          >
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <strong>{step.title}</strong>
+            <p>{step.detail}</p>
+          </div>
+        ))}
       </section>
 
+      <section className="mode-switcher" aria-label="高级功能入口">
+        <div>
+          <span className="section-label">可选操作</span>
+          <h2>需要更细控制时再展开</h2>
+          <p>普通用户可以只用上面的助手完成主流程；高级编辑、逐平台调稿和新增平台都放在这里。</p>
+        </div>
+        <div className="button-row">
+          <button
+            type="button"
+            onClick={() => setShowAdvancedWorkspace((current) => !current)}
+          >
+            {showAdvancedWorkspace ? "收起高级工作台" : "编辑平台版本"}
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => setShowCustomPlatformCenter((current) => !current)}
+          >
+            {showCustomPlatformCenter ? "收起平台扩展" : "添加更多平台"}
+          </button>
+        </div>
+      </section>
+
+      {showAdvancedWorkspace ? (
+        <section className="workspace" aria-label="高级工作台">
+          <aside className="editor-preview">
+            <ContentEditor
+              content={content}
+              platformOptions={platformOptions}
+              onChange={changeContent}
+              onLoadSample={() => changeContent(sampleContentInput)}
+              onReset={() => changeContent(emptyContentInput)}
+            />
+          </aside>
+
+          <PlatformPreviewGrid
+            previews={previews}
+            hasContent={hasContent}
+            onUpdateContent={updatePlatformContent}
+            onResetContent={resetPlatformContent}
+            editedPlatformIds={Object.keys(editedContent)}
+          />
+        </section>
+      ) : null}
+
+      {showCustomPlatformCenter ? (
       <section className="extension-center" aria-labelledby="extension-title">
         <div>
           <span className="section-label">平台扩展</span>
@@ -881,6 +942,7 @@ function App() {
           </ul>
         ) : null}
       </section>
+      ) : null}
 
       <section className="bottom-panel" aria-label="发布闭环">
         <div className="flow" aria-labelledby="flow-title">

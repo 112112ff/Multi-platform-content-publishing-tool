@@ -84,6 +84,7 @@ h2 {
 .status-strip div,
 .guided-flow,
 .agent-panel,
+.mode-switcher,
 .editor-preview,
 .publish-workbench,
 .extension-center,
@@ -234,6 +235,11 @@ h2 {
   padding: 1rem;
 }
 
+.primary-agent {
+  border-color: #b8d7db;
+  box-shadow: 0 12px 34px rgba(34, 68, 74, 0.08);
+}
+
 .agent-panel p {
   color: #53666b;
   line-height: 1.5;
@@ -261,7 +267,7 @@ h2 {
 .agent-command {
   display: grid;
   gap: 0.65rem;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr minmax(180px, auto);
 }
 
 .agent-command label {
@@ -273,7 +279,37 @@ h2 {
 }
 
 .agent-command textarea {
-  min-height: 92px;
+  min-height: 118px;
+}
+
+.assistant-summary {
+  display: grid;
+  gap: 0.55rem;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.assistant-summary div {
+  background: #fbfcfd;
+  border: 1px dashed #b9c9ce;
+  border-radius: 8px;
+  min-height: 88px;
+  padding: 0.65rem;
+}
+
+.assistant-summary span {
+  color: #0b6f78;
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 900;
+  margin-bottom: 0.3rem;
+}
+
+.assistant-summary strong {
+  color: #172026;
+  display: block;
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 .agent-log {
@@ -295,6 +331,20 @@ h2 {
 
 .agent-log p:first-child {
   border-top: 0;
+}
+
+.mode-switcher {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+}
+
+.mode-switcher p {
+  color: #53666b;
+  line-height: 1.45;
+  margin: 0.25rem 0 0;
 }
 
 .workspace {
@@ -887,6 +937,7 @@ h2 {
 @media (max-width: 1280px) {
   .workspace,
   .agent-panel,
+  .mode-switcher,
   .extension-center,
   .bottom-panel {
     grid-template-columns: 1fr;
@@ -925,8 +976,14 @@ h2 {
     min-width: 0;
   }
 
+  .mode-switcher {
+    align-items: stretch;
+    display: grid;
+  }
+
   .status-strip,
   .guided-flow,
+  .assistant-summary,
   .field-grid,
   .platform-toggle-grid,
   .asset-preview,
