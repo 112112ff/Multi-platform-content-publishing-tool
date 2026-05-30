@@ -5,13 +5,7 @@ import type {
   ValidationResult,
 } from "./content";
 
-export type PlatformId =
-  | "wechat"
-  | "zhihu"
-  | "bilibili"
-  | "xiaohongshu"
-  | "weibo"
-  | "douyin";
+export type PlatformId = string;
 
 export interface PlatformProfile {
   id: PlatformId;
@@ -20,6 +14,17 @@ export interface PlatformProfile {
   contentStrategy: string;
   tone: string;
   publishRisks: string[];
+}
+
+export interface CustomPlatformConfig {
+  id: PlatformId;
+  name: string;
+  positioning: string;
+  contentStrategy: string;
+  tone: string;
+  requiredAsset: "none" | "cover" | "video";
+  maxTitleLength: number;
+  tagHints: string[];
 }
 
 export interface PlatformAdapter {

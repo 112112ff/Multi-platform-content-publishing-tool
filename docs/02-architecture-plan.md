@@ -147,6 +147,10 @@ export const platformAdapters = [
 
 ## 如何新增平台
 
+当前支持两种新增方式。
+
+### 方式一：代码级平台适配器
+
 以新增微博为例：
 
 1. 在 `src/adapters/weibo.ts` 中创建 `weiboAdapter`。
@@ -155,6 +159,29 @@ export const platformAdapters = [
 4. 实现 `publish`，MVP 阶段返回模拟发布结果。
 5. 在 `registry.ts` 中注册 `weiboAdapter`。
 6. 如有特殊展示信息，在 `platformProfiles.ts` 中补充平台资料。
+
+### 方式二：页面配置动态平台
+
+如果只是为了快速验证新平台规则，可以在页面的“自定义平台接入中心”填写：
+
+- 平台名称
+- 平台定位
+- 内容策略
+- 语气
+- 必需素材
+- 标题字数上限
+- 推荐标签
+
+前端会把这些配置转成 `CustomPlatformConfig`，再通过 `createCustomPlatformAdapter` 生成一个完整的 `PlatformAdapter`。生成后的平台会立即进入：
+
+- 目标平台选择
+- 平台适配预览
+- 发布体检
+- 发布队列
+- 本地发布记录
+- Webhook 实发 payload
+
+这证明扩展更多平台不仅是文档设计，也已经落到可运行功能里。
 
 ## 当前 MVP 的技术取舍
 

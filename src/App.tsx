@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { ContentEditor } from "./components/ContentEditor";
 import { PlatformPreviewGrid } from "./components/PlatformPreviewGrid";
-import { getPlatformAdapter } from "./adapters/registry";
+import { createCustomPlatformAdapter } from "./adapters/customAdapter";
+import { platformAdapters } from "./adapters/registry";
 import { emptyContentInput, sampleContentInput } from "./data/sampleContent";
 import { adaptContentForSelectedPlatforms } from "./services/adaptContent";
 import type { AdaptedContent, ContentInput, PublishResult } from "./types/content";
 import type { PlatformPreview } from "./services/adaptContent";
+import type { CustomPlatformConfig } from "./types/platform";
 
 type DeliveryMode = "local" | "webhook";
 
@@ -19,6 +21,16 @@ interface PublishBatch {
 }
 
 const storageKey = "contentbridge-draft-v2";
+
+const emptyCustomPlatformDraft = {
+  name: "",
+  positioning: "",
+  contentStrategy: "",
+  tone: "",
+  requiredAsset: "none" as CustomPlatformConfig["requiredAsset"],
+  maxTitleLength: 32,
+  tagHintsText: "",
+};
 
 const workflowSteps = [
   "输入原始内容",
@@ -65,6 +77,7 @@ const readStoredDraft = () => {
       publishBatches?: PublishBatch[];
       deliveryMode?: DeliveryMode;
       webhookUrl?: string;
+      customPlatforms?: CustomPlatformConfig[];
     };
   } catch {
     return null;
@@ -99,11 +112,23 @@ function App() {
     storedDraft?.deliveryMode ?? "local",
   );
   const [webhookUrl, setWebhookUrl] = useState(storedDraft?.webhookUrl ?? "");
+  const [customPlatforms, setCustomPlatforms] = useState<CustomPlatformConfig[]>(
+    storedDraft?.customPlatforms ?? [],
+  );
+  const [customPlatformDraft, setCustomPlatformDraft] = useState(
+    emptyCustomPlatformDraft,
+  );
   const [publishProgress, setPublishProgress] = useState<Record<string, string>>({});
   const [editedContent, setEditedContent] = useState<Record<string, AdaptedContent>>(
     storedDraft?.editedContent ?? {},
   );
-  const generatedPreviews = adaptContentForSelectedPlatforms(content);
+  const customAdapters = customPlatforms.map(createCustomPlatformAdapter);
+  const allAdapters = [...platformAdapters, ...customAdapters];
+  const platformOptions = allAdapters.map((adapter) => ({
+    id: adapter.id,
+    name: adapter.name,
+  }));
+  const generatedPreviews = adaptContentForSelectedPlatforms(content, customAdapters);
   const previews: PlatformPreview[] = generatedPreviews.map((preview) => {
     const adapted = editedContent[preview.adapted.platformId] ?? preview.adapted;
     return {
@@ -230,9 +255,17 @@ function App() {
         publishBatches,
         deliveryMode,
         webhookUrl,
+        customPlatforms,
       }),
     );
-  }, [content, editedContent, publishBatches, deliveryMode, webhookUrl]);
+  }, [
+    content,
+    editedContent,
+    publishBatches,
+    deliveryMode,
+    webhookUrl,
+    customPlatforms,
+  ]);
 
   const publishToWebhook = async (preview: PlatformPreview) => {
     if (!webhookUrl.trim()) {
@@ -321,8 +354,57 @@ function App() {
     });
   };
 
+  const addCustomPlatform = () => {
+    const name = customPlatformDraft.name.trim();
+    if (!name) {
+      return;
+    }
+
+    const id = `custom-${Date.now()}`;
+    const nextPlatform: CustomPlatformConfig = {
+      id,
+      name,
+      positioning:
+        customPlatformDraft.positioning.trim() || `${name} 自定义发布渠道`,
+      contentStrategy:
+        customPlatformDraft.contentStrategy.trim() ||
+        "保留核心观点，按平台语气重组标题、正文和标签。",
+      tone: customPlatformDraft.tone.trim() || "清晰、直接、便于传播",
+      requiredAsset: customPlatformDraft.requiredAsset,
+      maxTitleLength: Number(customPlatformDraft.maxTitleLength) || 32,
+      tagHints: customPlatformDraft.tagHintsText
+        .split(/[,，\n]/)
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    };
+
+    setCustomPlatforms((current) => [...current, nextPlatform]);
+    setContent((current) => ({
+      ...current,
+      selectedPlatformIds: [...current.selectedPlatformIds, id],
+    }));
+    setCustomPlatformDraft(emptyCustomPlatformDraft);
+  };
+
+  const removeCustomPlatform = (platformId: string) => {
+    setCustomPlatforms((current) =>
+      current.filter((platform) => platform.id !== platformId),
+    );
+    setContent((current) => ({
+      ...current,
+      selectedPlatformIds: current.selectedPlatformIds.filter(
+        (id) => id !== platformId,
+      ),
+    }));
+    setEditedContent((current) => {
+      const next = { ...current };
+      delete next[platformId];
+      return next;
+    });
+  };
+
   const getPlatformName = (platformId: string) =>
-    getPlatformAdapter(platformId)?.name ?? platformId;
+    allAdapters.find((adapter) => adapter.id === platformId)?.name ?? platformId;
 
   return (
     <main className="app-shell">
@@ -395,6 +477,7 @@ function App() {
         <aside className="editor-preview">
           <ContentEditor
             content={content}
+            platformOptions={platformOptions}
             onChange={changeContent}
             onLoadSample={() => changeContent(sampleContentInput)}
             onReset={() => changeContent(emptyContentInput)}
@@ -408,6 +491,145 @@ function App() {
           onResetContent={resetPlatformContent}
           editedPlatformIds={Object.keys(editedContent)}
         />
+      </section>
+
+      <section className="extension-center" aria-labelledby="extension-title">
+        <div>
+          <span className="section-label">平台扩展</span>
+          <h2 id="extension-title">自定义平台接入中心</h2>
+          <p>
+            输入平台定位、内容策略和素材要求后，系统会实时生成一个新的
+            PlatformAdapter，并加入适配、体检、发布队列和 Webhook 投递。
+          </p>
+        </div>
+        <div className="extension-form">
+          <label>
+            平台名称
+            <input
+              value={customPlatformDraft.name}
+              onChange={(event) =>
+                setCustomPlatformDraft((current) => ({
+                  ...current,
+                  name: event.target.value,
+                }))
+              }
+              placeholder="例如：快手 / 今日头条 / LinkedIn"
+            />
+          </label>
+          <label>
+            平台定位
+            <input
+              value={customPlatformDraft.positioning}
+              onChange={(event) =>
+                setCustomPlatformDraft((current) => ({
+                  ...current,
+                  positioning: event.target.value,
+                }))
+              }
+              placeholder="例如：短视频社区、专业内容网络"
+            />
+          </label>
+          <label>
+            内容策略
+            <input
+              value={customPlatformDraft.contentStrategy}
+              onChange={(event) =>
+                setCustomPlatformDraft((current) => ({
+                  ...current,
+                  contentStrategy: event.target.value,
+                }))
+              }
+              placeholder="例如：强开场、短句、引导评论"
+            />
+          </label>
+          <label>
+            语气
+            <input
+              value={customPlatformDraft.tone}
+              onChange={(event) =>
+                setCustomPlatformDraft((current) => ({
+                  ...current,
+                  tone: event.target.value,
+                }))
+              }
+              placeholder="例如：轻快、专业、强行动感"
+            />
+          </label>
+          <label>
+            必需素材
+            <select
+              value={customPlatformDraft.requiredAsset}
+              onChange={(event) =>
+                setCustomPlatformDraft((current) => ({
+                  ...current,
+                  requiredAsset: event.target
+                    .value as CustomPlatformConfig["requiredAsset"],
+                }))
+              }
+            >
+              <option value="none">无</option>
+              <option value="cover">封面图</option>
+              <option value="video">视频</option>
+            </select>
+          </label>
+          <label>
+            标题字数上限
+            <input
+              type="number"
+              min="8"
+              max="120"
+              value={customPlatformDraft.maxTitleLength}
+              onChange={(event) =>
+                setCustomPlatformDraft((current) => ({
+                  ...current,
+                  maxTitleLength: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+          <label>
+            推荐标签
+            <input
+              value={customPlatformDraft.tagHintsText}
+              onChange={(event) =>
+                setCustomPlatformDraft((current) => ({
+                  ...current,
+                  tagHintsText: event.target.value,
+                }))
+              }
+              placeholder="用逗号分隔，例如：效率工具，经验分享"
+            />
+          </label>
+          <button type="button" className="publish-button" onClick={addCustomPlatform}>
+            接入自定义平台
+          </button>
+        </div>
+        {customPlatforms.length ? (
+          <ul className="custom-platform-list">
+            {customPlatforms.map((platform) => (
+              <li key={platform.id}>
+                <div>
+                  <strong>{platform.name}</strong>
+                  <p>{platform.positioning}</p>
+                </div>
+                <small>
+                  {platform.requiredAsset === "none"
+                    ? "无必需素材"
+                    : platform.requiredAsset === "cover"
+                      ? "需要封面"
+                      : "需要视频"}
+                </small>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => removeCustomPlatform(platform.id)}
+                >
+                  移除
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </section>
 
       <section className="bottom-panel" aria-label="发布闭环">

@@ -24,6 +24,7 @@
 - 预览编辑：用户可在发布前修改各平台版本。
 - 模拟发布：展示成功、失败、草稿、模拟链接和发布时间。
 - Webhook 实发：可配置外部 Webhook URL，把适配后的平台内容真实 POST 到接收端。
+- 自定义平台：在页面中配置平台名称、定位、内容策略、语气、素材要求和标题限制，即可动态生成新的平台适配器。
 - 发布记录：保留历史发布结果，形成完整演示链路。
 - 扩展架构：通过 `PlatformAdapter` 新增更多平台。
 
@@ -35,6 +36,13 @@
 2. Webhook 实发：在页面选择 `Webhook 实发`，填写如 `https://webhook.site/...`、团队自建后端、飞书/企业微信机器人中转服务等地址，点击发布后会对每个平台执行真实 HTTP POST。
 
 Webhook payload 包含 `source`、`platformId`、`platformName`、`title`、`body`、`summary`、`tags`、`score`、`createdAt`。如果接收端返回 2xx，系统记录为成功；否则记录失败原因。未来接入官方平台时，只需要把 Webhook 接收端替换为带授权的发布服务，前端适配器和发布编排不需要重写。
+
+## 平台扩展方式
+
+项目同时支持两种扩展方式：
+
+- 代码扩展：新增 `src/adapters/{platform}.ts`，实现 `PlatformAdapter` 的 `adapt`、`validate`、`publish`，再注册到 `registry.ts`。
+- 页面配置扩展：在“自定义平台接入中心”填写平台规则，系统会通过 `createCustomPlatformAdapter` 动态生成适配器，并立即加入适配预览、发布体检、发布队列和 Webhook 投递。
 
 ## 文档导航
 
