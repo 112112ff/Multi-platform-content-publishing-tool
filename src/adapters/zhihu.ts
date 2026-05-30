@@ -50,6 +50,6 @@ export const zhihuAdapter: PlatformAdapter = {
     return createValidationResult(90, issues);
   },
   async publish(content, validation) {
-    return createDraftPublishResult(content, validation.score);
+    return createDraftPublishResult(content, validation.score, validation.canPublish);
   },
 };

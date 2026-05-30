@@ -33,4 +33,20 @@ export const platformProfiles: Record<string, PlatformProfile> = {
     tone: "口语化、轻快、有分享感",
     publishRisks: ["标题过长", "标签不足", "正文段落太长"],
   },
+  weibo: {
+    id: "weibo",
+    name: "微博",
+    positioning: "热点传播与短内容扩散",
+    contentStrategy: "短标题、核心观点、话题标签和转发引导",
+    tone: "简短、直接、有传播点",
+    publishRisks: ["正文过长", "话题标签不足", "缺少互动提问"],
+  },
+  douyin: {
+    id: "douyin",
+    name: "抖音",
+    positioning: "短视频脚本与强开场内容",
+    contentStrategy: "前三秒钩子、口播脚本、镜头提示和行动引导",
+    tone: "强节奏、口语化、有行动感",
+    publishRisks: ["缺少视频链接", "开场不够抓人", "标签不够垂直"],
+  },
 };

@@ -47,6 +47,6 @@ export const bilibiliAdapter: PlatformAdapter = {
     return createValidationResult(issues.length ? 62 : 88, issues);
   },
   async publish(content, validation) {
-    return createDraftPublishResult(content, validation.score);
+    return createDraftPublishResult(content, validation.score, validation.canPublish);
   },
 };

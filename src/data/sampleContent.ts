@@ -6,7 +6,14 @@ export const emptyContentInput: ContentInput = {
   tags: [],
   coverUrl: "",
   videoUrl: "",
-  selectedPlatformIds: ["wechat", "zhihu", "bilibili", "xiaohongshu"],
+  selectedPlatformIds: [
+    "wechat",
+    "zhihu",
+    "bilibili",
+    "xiaohongshu",
+    "weibo",
+    "douyin",
+  ],
 };
 
 export const sampleContentInput: ContentInput = {
@@ -21,5 +28,12 @@ export const sampleContentInput: ContentInput = {
   tags: ["AI学习", "大学生", "效率工具", "学习方法"],
   coverUrl: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3",
   videoUrl: "https://www.bilibili.com/video/BV1example",
-  selectedPlatformIds: ["wechat", "zhihu", "bilibili", "xiaohongshu"],
+  selectedPlatformIds: [
+    "wechat",
+    "zhihu",
+    "bilibili",
+    "xiaohongshu",
+    "weibo",
+    "douyin",
+  ],
 };
