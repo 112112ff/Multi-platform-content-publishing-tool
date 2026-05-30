@@ -10,6 +10,8 @@ import type { PlatformPreview } from "./services/adaptContent";
 interface PublishBatch {
   id: string;
   createdAt: string;
+  completedAt?: string;
+  durationMs?: number;
   results: PublishResult[];
 }
 
@@ -22,6 +24,31 @@ const workflowSteps = [
   "发布体检",
   "模拟发布",
 ];
+
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+const formatDuration = (durationMs?: number) => {
+  if (!durationMs) {
+    return "未开始";
+  }
+
+  return durationMs < 1000 ? `${durationMs}ms` : `${(durationMs / 1000).toFixed(1)}s`;
+};
+
+const formatTime = (value?: string) =>
+  value
+    ? new Intl.DateTimeFormat("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }).format(new Date(value))
+    : "--";
+
+const statusLabel: Record<string, string> = {
+  ready: "就绪",
+  "needs-material": "待补素材",
+  blocked: "阻塞",
+};
 
 const readStoredDraft = () => {
   try {
@@ -48,6 +75,7 @@ function App() {
     storedDraft?.publishBatches ?? [],
   );
   const [isPublishing, setIsPublishing] = useState(false);
+  const [publishProgress, setPublishProgress] = useState<Record<string, string>>({});
   const [editedContent, setEditedContent] = useState<Record<string, AdaptedContent>>(
     storedDraft?.editedContent ?? {},
   );
@@ -81,6 +109,47 @@ function App() {
           .length,
       }
     : null;
+  const publishPlan = previews.map((preview, index) => {
+    const platformId = preview.adapted.platformId;
+    const hasBlockingIssue = !preview.validation.canPublish;
+    const needsVideo =
+      (platformId === "bilibili" || platformId === "douyin") && !content.videoUrl;
+    const status = hasBlockingIssue
+      ? "blocked"
+      : needsVideo
+        ? "needs-material"
+        : "ready";
+    const progress = publishProgress[platformId];
+    const progressTone =
+      progress === "成功"
+        ? "success"
+        : progress === "草稿"
+          ? "draft"
+          : progress === "失败"
+            ? "failed"
+            : progress === "发布中"
+              ? "running"
+              : status;
+
+    return {
+      platformId,
+      platformName: preview.platformName,
+      score: preview.validation.score,
+      status,
+      progress,
+      progressTone,
+      etaSeconds: 8 + index * 3 + preview.validation.issues.length * 2,
+      nextAction: hasBlockingIssue
+        ? "处理阻塞项后再发布"
+        : needsVideo
+          ? "可先保存草稿，补视频后正式发布"
+          : "可进入模拟发布队列",
+    };
+  });
+  const readyCount = publishPlan.filter((item) => item.status === "ready").length;
+  const draftCandidateCount = publishPlan.filter(
+    (item) => item.status === "needs-material",
+  ).length;
 
   const publishAll = async () => {
     if (!hasContent || !previews.length) {
@@ -88,18 +157,43 @@ function App() {
     }
 
     setIsPublishing(true);
-    const results = await Promise.all(
-      previews.map((preview) =>
-        preview.adapter.publish(preview.adapted, preview.validation),
-      ),
-    );
+    const batchStartedAt = Date.now();
+    const results: PublishResult[] = [];
+
+    for (const preview of previews) {
+      setPublishProgress((current) => ({
+        ...current,
+        [preview.adapted.platformId]: "发布中",
+      }));
+      await wait(260);
+      const result = await preview.adapter.publish(
+        preview.adapted,
+        preview.validation,
+      );
+      results.push(result);
+      setPublishProgress((current) => ({
+        ...current,
+        [preview.adapted.platformId]:
+          result.status === "success"
+            ? "成功"
+            : result.status === "draft"
+              ? "草稿"
+              : "失败",
+      }));
+      await wait(160);
+    }
+
+    const completedAt = new Date().toISOString();
     const batch: PublishBatch = {
       id: `batch-${Date.now()}`,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(batchStartedAt).toISOString(),
+      completedAt,
+      durationMs: Date.now() - batchStartedAt,
       results,
     };
     setPublishBatches((current) => [batch, ...current].slice(0, 8));
     setIsPublishing(false);
+    window.setTimeout(() => setPublishProgress({}), 1600);
   };
 
   useEffect(() => {
@@ -214,6 +308,38 @@ function App() {
           </ol>
         </div>
 
+        <div className="ops-panel" aria-labelledby="ops-title">
+          <div className="history-heading">
+            <div>
+              <span className="section-label">发布编排</span>
+              <h2 id="ops-title">平台任务状态</h2>
+            </div>
+            <p>
+              就绪 {readyCount} / 草稿候选 {draftCandidateCount} / 阻塞{" "}
+              {blockedCount}
+            </p>
+          </div>
+          {publishPlan.length ? (
+            <ul>
+              {publishPlan.map((item) => (
+                <li key={item.platformId}>
+                  <div>
+                    <strong>{item.platformName}</strong>
+                    <p>{item.nextAction}</p>
+                    <small>预计处理 {item.etaSeconds}s</small>
+                  </div>
+                  <span className={`ops-status ${item.progressTone}`}>
+                    {item.progress ?? statusLabel[item.status]}
+                  </span>
+                  <small>{item.score} 分</small>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>选择目标平台后，这里会生成发布任务队列和下一步动作。</p>
+          )}
+        </div>
+
         <div className="history-panel" aria-labelledby="history-title">
           <div className="history-heading">
             <div>
@@ -223,7 +349,7 @@ function App() {
             {latestSummary ? (
               <p>
                 成功 {latestSummary.success} / 草稿 {latestSummary.draft} / 失败{" "}
-                {latestSummary.failed}
+                {latestSummary.failed} / 用时 {formatDuration(latestBatch?.durationMs)}
               </p>
             ) : null}
           </div>
@@ -239,7 +365,9 @@ function App() {
                   <span className={`publish-status ${result.status}`}>
                     {result.status}
                   </span>
-                  <small>{result.score} 分</small>
+                  <small>
+                    {result.score} 分 · {formatTime(result.createdAt)}
+                  </small>
                 </li>
               ))}
             </ul>
