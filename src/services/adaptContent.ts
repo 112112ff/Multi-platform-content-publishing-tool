@@ -18,8 +18,9 @@ export interface PlatformPreview {
 
 export function adaptContentForSelectedPlatforms(
   input: ContentInput,
+  extraAdapters: PlatformAdapter[] = [],
 ): PlatformPreview[] {
-  return platformAdapters
+  return [...platformAdapters, ...extraAdapters]
     .filter((adapter) => input.selectedPlatformIds.includes(adapter.id))
     .map((adapter) => {
       const adapted = adapter.adapt(input);

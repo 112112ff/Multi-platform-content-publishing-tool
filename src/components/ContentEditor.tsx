@@ -2,19 +2,11 @@ import type { ContentInput } from "../types/content";
 
 interface ContentEditorProps {
   content: ContentInput;
+  platformOptions: { id: string; name: string }[];
   onChange: (content: ContentInput) => void;
   onLoadSample: () => void;
   onReset: () => void;
 }
-
-const platformOptions = [
-  { id: "wechat", name: "公众号" },
-  { id: "zhihu", name: "知乎" },
-  { id: "bilibili", name: "B站" },
-  { id: "xiaohongshu", name: "小红书" },
-  { id: "weibo", name: "微博" },
-  { id: "douyin", name: "抖音" },
-];
 
 const tagsToText = (tags: string[]) => tags.join("，");
 
@@ -26,6 +18,7 @@ const textToTags = (value: string) =>
 
 export function ContentEditor({
   content,
+  platformOptions,
   onChange,
   onLoadSample,
   onReset,

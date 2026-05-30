@@ -83,6 +83,7 @@ h2 {
 .status-strip div,
 .editor-preview,
 .publish-workbench,
+.extension-center,
 .flow,
 .ops-panel,
 .history-panel {
@@ -288,6 +289,64 @@ h2 {
 .publish-workbench {
   min-width: 0;
   padding: 1rem;
+}
+
+.extension-center {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: minmax(260px, 0.7fr) minmax(0, 1.5fr);
+  padding: 1rem;
+}
+
+.extension-center p {
+  color: #53666b;
+  line-height: 1.5;
+  margin: 0.35rem 0 0;
+}
+
+.extension-form {
+  align-items: end;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+}
+
+.extension-form label {
+  color: #24373d;
+  display: grid;
+  font-size: 0.82rem;
+  font-weight: 850;
+  gap: 0.32rem;
+}
+
+.custom-platform-list {
+  border-top: 1px solid #e2e9eb;
+  display: grid;
+  gap: 0.55rem;
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0.8rem 0 0;
+}
+
+.custom-platform-list li {
+  align-items: center;
+  background: #f6f8f9;
+  border: 1px solid #dfe7ea;
+  border-radius: 8px;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: 1fr auto auto;
+  list-style: none;
+  padding: 0.7rem;
+}
+
+.custom-platform-list p {
+  margin: 0.2rem 0 0;
+}
+
+.custom-platform-list small {
+  color: #0b6f78;
+  font-weight: 900;
 }
 
 .workbench-header {
@@ -706,6 +765,7 @@ h2 {
 
 @media (max-width: 1280px) {
   .workspace,
+  .extension-center,
   .bottom-panel {
     grid-template-columns: 1fr;
   }
@@ -749,6 +809,8 @@ h2 {
   .asset-preview,
   .platform-rail,
   .flow ol,
+  .extension-form,
+  .custom-platform-list li,
   .ops-panel li,
   .history-panel li,
   .history-heading {
