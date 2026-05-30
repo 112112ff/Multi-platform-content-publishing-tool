@@ -16,12 +16,13 @@ const content: ContentInput = {
 };
 
 describe("matrix operation engine", () => {
-  it("keeps the three open-source ideas in backend-oriented blueprints", () => {
+  it("keeps the three matrix operation methods in backend-oriented blueprints", () => {
     expect(integrationBlueprints.map((blueprint) => blueprint.id)).toEqual([
       "account-channel",
       "hotspot-crawler",
       "upload-runner",
     ]);
+    expect(integrationBlueprints.every((blueprint) => blueprint.method)).toBe(true);
     expect(integrationBlueprints.every((blueprint) => blueprint.appliedAs)).toBe(true);
   });
 
