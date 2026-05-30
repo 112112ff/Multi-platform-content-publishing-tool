@@ -16,6 +16,8 @@
 - Demo 视频。
 - README 文档。
 
+本项目的集中提交说明见 [07-submission-brief.md](./07-submission-brief.md)。
+
 开发过程可以先保持仓库 Private，提交截止后必须改为 Public，确保评委可访问。
 
 如果项目后续拆出多个独立模块，必须放在同一个仓库的不同子目录中，例如：

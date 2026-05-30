@@ -4,6 +4,8 @@ ContentBridge 是一个面向创作者的多平台内容发布工具 MVP。用�
 
 本项目对应题目二：多平台内容发布工具。
 
+参赛提交说明与规则对照见 [docs/07-submission-brief.md](./docs/07-submission-brief.md)。
+
 ## Demo 视频
 
 Demo 视频链接将在最终录制后补充到这里：
@@ -124,6 +126,7 @@ npm run test:run
 - [提交规则与验收清单](./docs/04-delivery-rules-checklist.md)
 - [评审策略与得分点](./docs/05-review-strategy.md)
 - [Demo 录制脚本](./docs/06-demo-script.md)
+- [参赛提交说明](./docs/07-submission-brief.md)
 
 ## 团队协作
 
