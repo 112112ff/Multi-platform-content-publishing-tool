@@ -7,11 +7,14 @@ import { adaptContentForSelectedPlatforms } from "./services/adaptContent";
 import type { AdaptedContent, ContentInput, PublishResult } from "./types/content";
 import type { PlatformPreview } from "./services/adaptContent";
 
+type DeliveryMode = "local" | "webhook";
+
 interface PublishBatch {
   id: string;
   createdAt: string;
   completedAt?: string;
   durationMs?: number;
+  deliveryMode?: DeliveryMode;
   results: PublishResult[];
 }
 
@@ -60,11 +63,28 @@ const readStoredDraft = () => {
       content?: ContentInput;
       editedContent?: Record<string, AdaptedContent>;
       publishBatches?: PublishBatch[];
+      deliveryMode?: DeliveryMode;
+      webhookUrl?: string;
     };
   } catch {
     return null;
   }
 };
+
+const createDeliveryResult = (
+  preview: PlatformPreview,
+  result: Partial<PublishResult>,
+): PublishResult => ({
+  id: `${preview.adapted.platformId}-${Date.now()}-${Math.random()
+    .toString(16)
+    .slice(2)}`,
+  platformId: preview.adapted.platformId,
+  status: result.status ?? "draft",
+  url: result.url,
+  message: result.message ?? "已生成发布结果。",
+  createdAt: new Date().toISOString(),
+  score: preview.validation.score,
+});
 
 function App() {
   const storedDraft = readStoredDraft();
@@ -75,6 +95,10 @@ function App() {
     storedDraft?.publishBatches ?? [],
   );
   const [isPublishing, setIsPublishing] = useState(false);
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(
+    storedDraft?.deliveryMode ?? "local",
+  );
+  const [webhookUrl, setWebhookUrl] = useState(storedDraft?.webhookUrl ?? "");
   const [publishProgress, setPublishProgress] = useState<Record<string, string>>({});
   const [editedContent, setEditedContent] = useState<Record<string, AdaptedContent>>(
     storedDraft?.editedContent ?? {},
@@ -166,10 +190,10 @@ function App() {
         [preview.adapted.platformId]: "发布中",
       }));
       await wait(260);
-      const result = await preview.adapter.publish(
-        preview.adapted,
-        preview.validation,
-      );
+      const result =
+        deliveryMode === "webhook"
+          ? await publishToWebhook(preview)
+          : await preview.adapter.publish(preview.adapted, preview.validation);
       results.push(result);
       setPublishProgress((current) => ({
         ...current,
@@ -189,6 +213,7 @@ function App() {
       createdAt: new Date(batchStartedAt).toISOString(),
       completedAt,
       durationMs: Date.now() - batchStartedAt,
+      deliveryMode,
       results,
     };
     setPublishBatches((current) => [batch, ...current].slice(0, 8));
@@ -199,9 +224,68 @@ function App() {
   useEffect(() => {
     localStorage.setItem(
       storageKey,
-      JSON.stringify({ content, editedContent, publishBatches }),
+      JSON.stringify({
+        content,
+        editedContent,
+        publishBatches,
+        deliveryMode,
+        webhookUrl,
+      }),
     );
-  }, [content, editedContent, publishBatches]);
+  }, [content, editedContent, publishBatches, deliveryMode, webhookUrl]);
+
+  const publishToWebhook = async (preview: PlatformPreview) => {
+    if (!webhookUrl.trim()) {
+      return createDeliveryResult(preview, {
+        status: "failed",
+        message: "Webhook 地址为空，无法执行真实投递。",
+      });
+    }
+
+    if (!preview.validation.canPublish) {
+      return createDeliveryResult(preview, {
+        status: "failed",
+        message: "发布体检未通过，已阻止 Webhook 投递。",
+      });
+    }
+
+    try {
+      const response = await fetch(webhookUrl.trim(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          source: "ContentBridge",
+          platformId: preview.adapted.platformId,
+          platformName: preview.platformName,
+          title: preview.adapted.title,
+          body: preview.adapted.body,
+          summary: preview.adapted.summary,
+          tags: preview.adapted.tags,
+          score: preview.validation.score,
+          createdAt: new Date().toISOString(),
+        }),
+      });
+
+      return createDeliveryResult(preview, {
+        status: response.ok ? "success" : "failed",
+        url: webhookUrl.trim(),
+        message: response.ok
+          ? `已真实 POST 到 Webhook，状态码 ${response.status}。`
+          : `Webhook 返回 ${response.status}，请检查接收端配置。`,
+      });
+    } catch (error) {
+      return createDeliveryResult(preview, {
+        status: "failed",
+        url: webhookUrl.trim(),
+        message:
+          error instanceof Error
+            ? `Webhook 投递失败：${error.message}`
+            : "Webhook 投递失败，请检查网络、CORS 或接收端。",
+      });
+    }
+  };
 
   const changeContent = (nextContent: ContentInput) => {
     setContent(nextContent);
@@ -250,14 +334,42 @@ function App() {
             一份内容生成 6 个平台版本，自动做发布体检，并用模拟发布跑完整闭环。
           </p>
         </div>
-        <button
-          type="button"
-          className="publish-button"
-          disabled={!hasContent || !previews.length || isPublishing}
-          onClick={publishAll}
-        >
-          {isPublishing ? "发布中..." : "模拟一键发布"}
-        </button>
+        <div className="delivery-console">
+          <label>
+            发布通道
+            <select
+              value={deliveryMode}
+              onChange={(event) =>
+                setDeliveryMode(event.target.value as DeliveryMode)
+              }
+            >
+              <option value="local">本地演示</option>
+              <option value="webhook">Webhook 实发</option>
+            </select>
+          </label>
+          {deliveryMode === "webhook" ? (
+            <label>
+              Webhook URL
+              <input
+                value={webhookUrl}
+                onChange={(event) => setWebhookUrl(event.target.value)}
+                placeholder="https://webhook.site/..."
+              />
+            </label>
+          ) : null}
+          <button
+            type="button"
+            className="publish-button"
+            disabled={!hasContent || !previews.length || isPublishing}
+            onClick={publishAll}
+          >
+            {isPublishing
+              ? "发布中..."
+              : deliveryMode === "webhook"
+                ? "真实投递到 Webhook"
+                : "模拟一键发布"}
+          </button>
+        </div>
       </header>
 
       <section className="status-strip" aria-label="发布状态概览">
@@ -349,7 +461,9 @@ function App() {
             {latestSummary ? (
               <p>
                 成功 {latestSummary.success} / 草稿 {latestSummary.draft} / 失败{" "}
-                {latestSummary.failed} / 用时 {formatDuration(latestBatch?.durationMs)}
+                {latestSummary.failed} /{" "}
+                {latestBatch?.deliveryMode === "webhook" ? "Webhook" : "本地"} / 用时{" "}
+                {formatDuration(latestBatch?.durationMs)}
               </p>
             ) : null}
           </div>

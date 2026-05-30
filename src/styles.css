@@ -28,6 +28,7 @@ button {
 }
 
 input,
+select,
 textarea {
   background: #fbfcfd;
   border: 1px solid #cbd6da;
@@ -122,6 +123,27 @@ h2 {
   font-weight: 900;
   min-width: 148px;
   padding: 0.82rem 1rem;
+}
+
+.delivery-console {
+  align-items: end;
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: minmax(130px, 150px) minmax(260px, 1fr) auto;
+  min-width: min(680px, 100%);
+}
+
+.delivery-console label {
+  color: #24373d;
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 900;
+  gap: 0.28rem;
+}
+
+.delivery-console select,
+.delivery-console input {
+  height: 42px;
 }
 
 .publish-button:disabled {
@@ -714,6 +736,11 @@ h2 {
   .workbench-header,
   .platform-editor-title {
     display: grid;
+  }
+
+  .delivery-console {
+    grid-template-columns: 1fr;
+    min-width: 0;
   }
 
   .status-strip,
