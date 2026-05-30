@@ -35,7 +35,7 @@ describe("matrix operation engine", () => {
     ]);
   });
 
-  it("builds limited hotspot tasks inspired by crawler platform layering", () => {
+  it("builds limited hotspot tasks with platform-aware intent layering", () => {
     const accounts = demoAccountChannels.slice(0, 2);
     const tasks = buildHotspotCrawlPlan(content, accounts);
     expect(tasks).toHaveLength(4);
