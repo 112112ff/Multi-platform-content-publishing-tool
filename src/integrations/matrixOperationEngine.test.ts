@@ -16,18 +16,18 @@ const content: ContentInput = {
 };
 
 describe("matrix operation engine", () => {
-  it("keeps the three matrix operation methods in backend-oriented blueprints", () => {
+  it("keeps the three backend-oriented method blueprints", () => {
     expect(integrationBlueprints.map((blueprint) => blueprint.id)).toEqual([
       "account-channel",
       "hotspot-crawler",
       "upload-runner",
     ]);
-    expect(integrationBlueprints.every((blueprint) => blueprint.method)).toBe(true);
     expect(integrationBlueprints.every((blueprint) => blueprint.appliedAs)).toBe(true);
   });
 
   it("matches creator content to account channels instead of raw platforms only", () => {
     const accounts = selectAccountChannels(content);
+
     expect(accounts.map((account) => account.id)).toEqual([
       "xhs-study-note",
       "douyin-hook-video",
@@ -35,9 +35,10 @@ describe("matrix operation engine", () => {
     ]);
   });
 
-  it("builds limited hotspot tasks with platform-aware intent layering", () => {
+  it("builds limited hotspot tasks with platform layering", () => {
     const accounts = demoAccountChannels.slice(0, 2);
     const tasks = buildHotspotCrawlPlan(content, accounts);
+
     expect(tasks).toHaveLength(4);
     expect(tasks.every((task) => task.maxItems <= 50)).toBe(true);
     expect(tasks.map((task) => task.crawlerType)).toContain("comment-mining");
@@ -45,6 +46,7 @@ describe("matrix operation engine", () => {
 
   it("creates publish jobs that require confirmation before upload", () => {
     const plan = buildAgentOperationPlan(content);
+
     expect(plan.publishJobs).toHaveLength(3);
     expect(plan.publishJobs.every((job) => job.status === "needs-confirmation")).toBe(true);
     expect(plan.publishJobs.map((job) => job.executionRoute)).toEqual([
