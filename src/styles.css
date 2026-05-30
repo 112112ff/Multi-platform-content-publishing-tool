@@ -83,6 +83,7 @@ h2 {
 .editor-preview,
 .publish-workbench,
 .flow,
+.ops-panel,
 .history-panel {
   background: #ffffff;
   border: 1px solid #d7e0e3;
@@ -549,10 +550,11 @@ h2 {
 .bottom-panel {
   display: grid;
   gap: 0.8rem;
-  grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
+  grid-template-columns: minmax(320px, 0.75fr) minmax(420px, 1fr) minmax(420px, 1fr);
 }
 
 .flow,
+.ops-panel,
 .history-panel {
   padding: 0.95rem;
 }
@@ -560,7 +562,7 @@ h2 {
 .flow ol {
   display: grid;
   gap: 0.55rem;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   list-style-position: inside;
   margin: 0;
   padding: 0;
@@ -573,6 +575,13 @@ h2 {
   padding: 0.7rem;
 }
 
+.ops-panel ul,
+.history-panel ul {
+  margin: 0;
+  padding: 0;
+}
+
+.ops-panel li,
 .history-panel li {
   align-items: center;
   border-top: 1px solid #e2e9eb;
@@ -583,6 +592,7 @@ h2 {
   padding: 0.7rem 0;
 }
 
+.ops-panel li:first-child,
 .history-panel li:first-child {
   border-top: 0;
 }
@@ -604,6 +614,7 @@ h2 {
   text-align: right;
 }
 
+.ops-panel p,
 .history-panel p {
   color: #53666b;
   font-size: 0.88rem;
@@ -611,6 +622,7 @@ h2 {
   margin: 0.25rem 0;
 }
 
+.ops-panel small,
 .history-panel small {
   color: #53666b;
   font-weight: 800;
@@ -636,6 +648,38 @@ h2 {
 .publish-status.draft {
   background: #fff0d8;
   color: #885100;
+}
+
+.ops-status {
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  min-width: 72px;
+  padding: 0.25rem 0.55rem;
+  text-align: center;
+}
+
+.ops-status.ready,
+.ops-status.success {
+  background: #ddf3e8;
+  color: #116944;
+}
+
+.ops-status.running {
+  background: #dcecf7;
+  color: #125a86;
+}
+
+.ops-status.needs-material,
+.ops-status.draft {
+  background: #fff0d8;
+  color: #885100;
+}
+
+.ops-status.blocked,
+.ops-status.failed {
+  background: #ffe1dc;
+  color: #9b2b18;
 }
 
 @media (max-width: 1280px) {
@@ -678,6 +722,7 @@ h2 {
   .asset-preview,
   .platform-rail,
   .flow ol,
+  .ops-panel li,
   .history-panel li,
   .history-heading {
     grid-template-columns: 1fr;
