@@ -44,7 +44,7 @@ ContentInput
   -> AdaptedContent
   -> PlatformAdapter.validate()
   -> ValidationResult + HealthScore
-  -> publishSimulator.publish()
+  -> LocalPublisher / WebhookPublisher / OfficialPlatformPublisher
   -> PublishResult
   -> PublishHistory
 ```
@@ -105,6 +105,25 @@ export interface PlatformAdapter {
   publish(content: AdaptedContent, validation: ValidationResult): Promise<PublishResult>;
 }
 ```
+
+## 发布通道设计
+
+MVP 当前实现了两类可运行发布通道：
+
+- 本地演示通道：调用各平台 `adapter.publish()` 生成草稿、成功或失败结果，用于稳定演示平台规则和发布闭环。
+- Webhook 实发通道：前端把每个平台适配后的内容真实 POST 到用户配置的 Webhook URL，接收端可以是 webhook.site、团队自建后端、自动化机器人或未来官方平台代理服务。
+
+未来接入官方发布时，建议新增后端 `OfficialPlatformPublisher`：
+
+```txt
+Frontend Publish Queue
+  -> POST /api/publish/:platformId
+  -> OfficialPlatformPublisher
+  -> OAuth Token / Platform Open API
+  -> PublishResult
+```
+
+这样可以把密钥、OAuth、重试、限流和审核状态放在后端处理，前端继续复用当前的适配、体检、队列和历史记录。
 
 ## 注册机制
 
