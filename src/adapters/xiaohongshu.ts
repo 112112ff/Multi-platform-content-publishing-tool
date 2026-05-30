@@ -58,6 +58,6 @@ export const xiaohongshuAdapter: PlatformAdapter = {
     return createValidationResult(issues.length ? 84 : 92, issues);
   },
   async publish(content, validation) {
-    return createDraftPublishResult(content, validation.score);
+    return createDraftPublishResult(content, validation.score, validation.canPublish);
   },
 };

@@ -54,6 +54,6 @@ export const wechatAdapter: PlatformAdapter = {
     return createValidationResult(issues.length ? 86 : 94, issues);
   },
   async publish(content, validation) {
-    return createDraftPublishResult(content, validation.score);
+    return createDraftPublishResult(content, validation.score, validation.canPublish);
   },
 };

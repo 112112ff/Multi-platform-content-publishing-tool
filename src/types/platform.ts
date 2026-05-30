@@ -5,7 +5,13 @@ import type {
   ValidationResult,
 } from "./content";
 
-export type PlatformId = "wechat" | "zhihu" | "bilibili" | "xiaohongshu";
+export type PlatformId =
+  | "wechat"
+  | "zhihu"
+  | "bilibili"
+  | "xiaohongshu"
+  | "weibo"
+  | "douyin";
 
 export interface PlatformProfile {
   id: PlatformId;

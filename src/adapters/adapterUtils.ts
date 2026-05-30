@@ -38,11 +38,19 @@ export const createValidationResult = (
 export const createDraftPublishResult = (
   content: AdaptedContent,
   score: number,
+  canPublish = true,
 ): PublishResult => ({
-  id: `${content.platformId}-${Date.now()}`,
+  id: `${content.platformId}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
   platformId: content.platformId,
-  status: "draft",
-  message: "真实发布 API 尚未接入，当前结果保存为模拟草稿。",
+  status: canPublish ? (score >= 88 ? "success" : "draft") : "failed",
+  url: canPublish
+    ? `https://contentbridge.local/mock/${content.platformId}/${Date.now()}`
+    : undefined,
+  message: canPublish
+    ? score >= 88
+      ? "模拟发布成功，已生成演示链接。"
+      : "内容已保存为模拟草稿，建议根据体检结果继续优化。"
+    : "发布校验未通过，已拦截本平台模拟发布。",
   createdAt: new Date().toISOString(),
   score,
 });
