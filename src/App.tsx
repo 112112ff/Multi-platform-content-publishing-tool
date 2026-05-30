@@ -65,6 +65,26 @@ const statusLabel: Record<string, string> = {
   blocked: "阻塞",
 };
 
+const agentExamples = [
+  "载入示例内容，选择公众号、知乎、小红书",
+  "我要真实投递到 https://webhook.site/xxx",
+  "新增一个快手平台，短视频社区，需要视频",
+  "帮我写一篇关于 AI 学习效率的内容",
+];
+
+const platformAlias: Record<string, string> = {
+  公众号: "wechat",
+  微信: "wechat",
+  知乎: "zhihu",
+  B站: "bilibili",
+  哔哩哔哩: "bilibili",
+  小红书: "xiaohongshu",
+  微博: "weibo",
+  抖音: "douyin",
+};
+
+const extractUrl = (value: string) => value.match(/https?:\/\/\S+/)?.[0] ?? "";
+
 const readStoredDraft = () => {
   try {
     const raw = localStorage.getItem(storageKey);
@@ -118,6 +138,10 @@ function App() {
   const [customPlatformDraft, setCustomPlatformDraft] = useState(
     emptyCustomPlatformDraft,
   );
+  const [agentInput, setAgentInput] = useState("");
+  const [agentMessages, setAgentMessages] = useState<string[]>([
+    "你可以直接说目标，例如：载入示例、选择平台、设置外部接收端、新增快手平台。",
+  ]);
   const [publishProgress, setPublishProgress] = useState<Record<string, string>>({});
   const [editedContent, setEditedContent] = useState<Record<string, AdaptedContent>>(
     storedDraft?.editedContent ?? {},
@@ -199,6 +223,37 @@ function App() {
   const draftCandidateCount = publishPlan.filter(
     (item) => item.status === "needs-material",
   ).length;
+  const guidedSteps = [
+    {
+      title: "1. 输入内容",
+      detail: hasContent ? "已获得原始内容" : "先输入正文或载入示例",
+      done: hasContent,
+    },
+    {
+      title: "2. 选择平台",
+      detail: previews.length ? `${previews.length} 个平台已进入队列` : "至少选择一个目标平台",
+      done: previews.length > 0,
+    },
+    {
+      title: "3. 体检与编辑",
+      detail: hasContent
+        ? blockedCount
+          ? `${blockedCount} 个阻塞项需要处理`
+          : `平均健康分 ${averageScore}`
+        : "生成后查看风险和建议",
+      done: hasContent && previews.length > 0 && blockedCount === 0,
+    },
+    {
+      title: "4. 投递验证",
+      detail:
+        deliveryMode === "webhook"
+          ? webhookUrl
+            ? "已配置外部接收端"
+            : "等待填写外部接收端 URL"
+          : "当前为本地演示通道",
+      done: deliveryMode === "webhook" ? Boolean(webhookUrl.trim()) : publishHistory.length > 0,
+    },
+  ];
 
   const publishAll = async () => {
     if (!hasContent || !previews.length) {
@@ -386,6 +441,33 @@ function App() {
     setCustomPlatformDraft(emptyCustomPlatformDraft);
   };
 
+  const addCustomPlatformFromAgent = (
+    name: string,
+    requiredAsset: CustomPlatformConfig["requiredAsset"],
+  ) => {
+    const id = `custom-${Date.now()}`;
+    const nextPlatform: CustomPlatformConfig = {
+      id,
+      name,
+      positioning: requiredAsset === "video" ? "短视频内容渠道" : "自定义内容渠道",
+      contentStrategy:
+        requiredAsset === "video"
+          ? "强开场、短句表达、保留互动引导和行动建议。"
+          : "保留核心观点，按平台语气重组标题、正文和标签。",
+      tone: requiredAsset === "video" ? "轻快、直接、有行动感" : "清晰、直接、便于传播",
+      requiredAsset,
+      maxTitleLength: requiredAsset === "video" ? 24 : 32,
+      tagHints: requiredAsset === "video" ? ["短视频", "经验分享"] : ["内容分发"],
+    };
+
+    setCustomPlatforms((current) => [...current, nextPlatform]);
+    setContent((current) => ({
+      ...current,
+      selectedPlatformIds: [...new Set([...current.selectedPlatformIds, id])],
+    }));
+    return nextPlatform.name;
+  };
+
   const removeCustomPlatform = (platformId: string) => {
     setCustomPlatforms((current) =>
       current.filter((platform) => platform.id !== platformId),
@@ -406,6 +488,112 @@ function App() {
   const getPlatformName = (platformId: string) =>
     allAdapters.find((adapter) => adapter.id === platformId)?.name ?? platformId;
 
+  const runAgentCommand = async (rawCommand = agentInput) => {
+    const command = rawCommand.trim();
+    if (!command) {
+      return;
+    }
+
+    const replies: string[] = [];
+    const url = extractUrl(command);
+
+    if (command.includes("示例") || command.includes("demo") || command.includes("Demo")) {
+      changeContent(sampleContentInput);
+      replies.push("已载入示例内容，并生成默认 6 平台任务。");
+    }
+
+    if (command.includes("清空") || command.includes("重置")) {
+      changeContent(emptyContentInput);
+      replies.push("已清空当前内容和人工编辑版本。");
+    }
+
+    const selectedPlatformIds = Object.entries(platformAlias)
+      .filter(([alias]) => command.includes(alias))
+      .map(([, platformId]) => platformId);
+    if (selectedPlatformIds.length) {
+      setContent((current) => ({
+        ...current,
+        selectedPlatformIds: [...new Set(selectedPlatformIds)],
+      }));
+      replies.push(
+        `已按你的要求选择：${selectedPlatformIds
+          .map((id) => getPlatformName(id))
+          .join("、")}。`,
+      );
+    }
+
+    if (command.includes("全部平台") || command.includes("全平台")) {
+      setContent((current) => ({
+        ...current,
+        selectedPlatformIds: allAdapters.map((adapter) => adapter.id),
+      }));
+      replies.push("已选择当前所有平台，包括自定义平台。");
+    }
+
+    if (url) {
+      setDeliveryMode("webhook");
+      setWebhookUrl(url);
+      replies.push("已切换到外部接收端投递，并填入你提供的 URL。");
+    } else if (
+      command.includes("真实") ||
+      command.includes("投递") ||
+      command.includes("webhook") ||
+      command.includes("Webhook")
+    ) {
+      setDeliveryMode("webhook");
+      replies.push("已切换到外部接收端投递。你还需要填写一个接收地址，例如 webhook.site 生成的 URL。");
+    }
+
+    if (command.includes("本地") || command.includes("模拟")) {
+      setDeliveryMode("local");
+      replies.push("已切换到本地演示通道，适合稳定录制 Demo。");
+    }
+
+    const customPlatformName = ["快手", "今日头条", "头条", "LinkedIn", "公众号矩阵"].find(
+      (name) => command.includes(name),
+    );
+    if (customPlatformName && !platformOptions.some((platform) => platform.name === customPlatformName)) {
+      const createdName = addCustomPlatformFromAgent(
+        customPlatformName === "头条" ? "今日头条" : customPlatformName,
+        command.includes("视频") || command.includes("短视频") ? "video" : "none",
+      );
+      replies.push(`已新增自定义平台：${createdName}，并加入发布队列。`);
+    }
+
+    if (command.includes("写") || command.includes("生成一篇") || command.includes("准备一篇")) {
+      const topic = command
+        .replace(/帮我|请|写一篇|生成一篇|准备一篇|内容|关于|的/g, " ")
+        .replace(url, "")
+        .trim();
+      const title = topic ? `${topic}：一份可复用的发布草稿` : "一份可复用的多平台发布草稿";
+      setContent((current) => ({
+        ...current,
+        title,
+        body: [
+          `这是一份围绕“${topic || "当前主题"}”生成的初稿。`,
+          "核心观点是：先明确目标受众，再按平台语境调整表达方式，而不是把同一段文字机械复制到所有平台。",
+          "执行时可以先沉淀一份完整正文，再分别生成长图文、问答、短视频脚本、种草笔记和短内容传播版本。",
+          "发布前需要检查标题长度、素材是否齐全、标签是否足够，以及是否有明确的互动引导。",
+        ].join("\n\n"),
+        tags: topic ? [topic, "内容分发", "效率工具"] : ["内容分发", "效率工具"],
+      }));
+      replies.push("已根据你的描述生成一份可继续编辑的原始内容。");
+    }
+
+    if (command.includes("发布") && hasContent && previews.length) {
+      replies.push("已收到发布意图。为避免误发，我已准备好队列，请你点击主按钮确认投递。");
+    }
+
+    if (!replies.length) {
+      replies.push(
+        "我理解得还不够明确。你可以说：载入示例、选择小红书和抖音、设置 Webhook URL、新增快手平台，或帮我写一篇关于某主题的内容。",
+      );
+    }
+
+    setAgentMessages((current) => [`你：${command}`, ...replies, ...current].slice(0, 8));
+    setAgentInput("");
+  };
+
   return (
     <main className="app-shell">
       <header className="top-bar">
@@ -413,7 +601,7 @@ function App() {
           <p className="eyebrow">ContentBridge MVP</p>
           <h1 id="product-title">创作者多平台发布控制台</h1>
           <p className="lead">
-            一份内容生成 6 个平台版本，自动做发布体检，并用模拟发布跑完整闭环。
+            一句话让助手准备内容，一份稿件生成多个平台版本，并通过本地演示或外部接收端完成投递验证。
           </p>
         </div>
         <div className="delivery-console">
@@ -426,12 +614,12 @@ function App() {
               }
             >
               <option value="local">本地演示</option>
-              <option value="webhook">Webhook 实发</option>
+              <option value="webhook">外部接收端实发</option>
             </select>
           </label>
           {deliveryMode === "webhook" ? (
             <label>
-              Webhook URL
+              接收端 URL
               <input
                 value={webhookUrl}
                 onChange={(event) => setWebhookUrl(event.target.value)}
@@ -448,9 +636,12 @@ function App() {
             {isPublishing
               ? "发布中..."
               : deliveryMode === "webhook"
-                ? "真实投递到 Webhook"
+                ? "投递到外部接收端"
                 : "模拟一键发布"}
           </button>
+          <p className="delivery-hint">
+            外部接收端就是能接收 HTTP POST 的地址，录 Demo 可用 webhook.site 验证真实投递。
+          </p>
         </div>
       </header>
 
@@ -471,6 +662,65 @@ function App() {
           <span>{publishHistory.length}</span>
           <p>发布记录</p>
         </div>
+      </section>
+
+      <section className="guided-flow" aria-label="演示流程引导">
+        {guidedSteps.map((step, index) => (
+          <div
+            className={step.done ? "flow-card done" : "flow-card"}
+            key={step.title}
+          >
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <strong>{step.title}</strong>
+            <p>{step.detail}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="agent-panel" aria-labelledby="agent-title">
+        <div>
+          <span className="section-label">发布助手 Agent</span>
+          <h2 id="agent-title">用一句话调用功能</h2>
+          <p>
+            这个助手是本地规则引擎，会调用页面里的真实功能：载入内容、选择平台、配置外部接收端、新增平台和生成初稿。
+          </p>
+          <div className="agent-examples">
+            {agentExamples.map((example) => (
+              <button
+                type="button"
+                key={example}
+                onClick={() => runAgentCommand(example)}
+              >
+                {example}
+              </button>
+            ))}
+          </div>
+        </div>
+        <form
+          className="agent-command"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void runAgentCommand();
+          }}
+        >
+          <label>
+            说出你的发布目标
+            <textarea
+              value={agentInput}
+              onChange={(event) => setAgentInput(event.target.value)}
+              placeholder="例如：帮我写一篇关于 AI 学习效率的内容，并选择小红书和抖音"
+              rows={3}
+            />
+          </label>
+          <button type="submit" className="publish-button">
+            让助手执行
+          </button>
+          <div className="agent-log" aria-live="polite">
+            {agentMessages.map((message) => (
+              <p key={message}>{message}</p>
+            ))}
+          </div>
+        </form>
       </section>
 
       <section className="workspace" aria-label="工作台概览">

@@ -19,6 +19,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -81,6 +82,8 @@ h2 {
 
 .top-bar,
 .status-strip div,
+.guided-flow,
+.agent-panel,
 .editor-preview,
 .publish-workbench,
 .extension-center,
@@ -147,6 +150,15 @@ h2 {
   height: 42px;
 }
 
+.delivery-hint {
+  color: #60747a;
+  font-size: 0.78rem;
+  font-weight: 800;
+  grid-column: 1 / -1;
+  line-height: 1.35;
+  margin: -0.25rem 0 0;
+}
+
 .publish-button:disabled {
   background: #9cafb5;
   cursor: not-allowed;
@@ -174,6 +186,115 @@ h2 {
   font-size: 0.86rem;
   font-weight: 800;
   margin: 0.35rem 0 0;
+}
+
+.guided-flow {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 0.85rem;
+}
+
+.flow-card {
+  background: #fbfcfd;
+  border: 2px dashed #b9c9ce;
+  border-radius: 8px;
+  display: grid;
+  gap: 0.28rem;
+  min-height: 104px;
+  padding: 0.78rem;
+}
+
+.flow-card.done {
+  background: #f0f8f4;
+  border-color: #5fa77f;
+}
+
+.flow-card span {
+  color: #0b6f78;
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.flow-card strong {
+  color: #172026;
+}
+
+.flow-card p {
+  color: #53666b;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.agent-panel {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(420px, 1.15fr);
+  padding: 1rem;
+}
+
+.agent-panel p {
+  color: #53666b;
+  line-height: 1.5;
+  margin: 0.35rem 0 0;
+}
+
+.agent-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.8rem;
+}
+
+.agent-examples button {
+  background: #eef4f5;
+  border: 1px solid #cfdadd;
+  border-radius: 999px;
+  color: #0b6f78;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 850;
+  padding: 0.42rem 0.65rem;
+}
+
+.agent-command {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: 1fr auto;
+}
+
+.agent-command label {
+  color: #24373d;
+  display: grid;
+  font-size: 0.86rem;
+  font-weight: 850;
+  gap: 0.35rem;
+}
+
+.agent-command textarea {
+  min-height: 92px;
+}
+
+.agent-log {
+  background: #f6f8f9;
+  border: 1px solid #dfe7ea;
+  border-radius: 8px;
+  grid-column: 1 / -1;
+  max-height: 156px;
+  overflow: auto;
+  padding: 0.65rem;
+}
+
+.agent-log p {
+  border-top: 1px solid #e2e9eb;
+  font-size: 0.84rem;
+  margin: 0;
+  padding: 0.45rem 0;
+}
+
+.agent-log p:first-child {
+  border-top: 0;
 }
 
 .workspace {
@@ -765,6 +886,7 @@ h2 {
 
 @media (max-width: 1280px) {
   .workspace,
+  .agent-panel,
   .extension-center,
   .bottom-panel {
     grid-template-columns: 1fr;
@@ -804,10 +926,12 @@ h2 {
   }
 
   .status-strip,
+  .guided-flow,
   .field-grid,
   .platform-toggle-grid,
   .asset-preview,
   .platform-rail,
+  .agent-command,
   .flow ol,
   .extension-form,
   .custom-platform-list li,
