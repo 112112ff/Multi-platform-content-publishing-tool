@@ -1210,10 +1210,38 @@ function App() {
                 </div>
 
                 <div className="publish-action-card">
-                  <div className={`score-card ${scoreTone(cleanPreview.validation.score)}`}>
-                    <span>{cleanPreview.validation.score}</span>
-                    <p>{cleanPreview.validation.canPublish ? "发布体检通过" : "需要修改后再发布"}</p>
+                  <div className="publish-action-heading">
+                    <div>
+                      <span>发布前确认</span>
+                      <h3>{activePlatform.name} 发布舱</h3>
+                      <p>
+                        已准备好标题、正文和标签。点击主按钮后会打开官方创作页，并把当前草稿加入发布队列。
+                      </p>
+                    </div>
+                    <div className={`score-card ${scoreTone(cleanPreview.validation.score)}`}>
+                      <span>{cleanPreview.validation.score}</span>
+                      <p>{cleanPreview.validation.canPublish ? "体检通过" : "需处理"}</p>
+                    </div>
                   </div>
+
+                  <div className="publish-ritual-rail" aria-label="发布流程">
+                    <article className="done">
+                      <b>1</b>
+                      <span>平台草稿</span>
+                      <small>已生成可编辑内容</small>
+                    </article>
+                    <article className={accountConnected ? "done" : "current"}>
+                      <b>2</b>
+                      <span>账号确认</span>
+                      <small>{accountConnected ? "已确认登录状态" : "确认后继续发布"}</small>
+                    </article>
+                    <article className={cleanPreview.validation.canPublish ? "current" : ""}>
+                      <b>3</b>
+                      <span>送往创作页</span>
+                      <small>复制草稿并打开官方页面</small>
+                    </article>
+                  </div>
+
                   {displayIssues.length ? (
                     <ul className="simple-issue-list">
                       {displayIssues.map((issue) => (
@@ -1233,8 +1261,11 @@ function App() {
                     disabled={isPublishing || !cleanPreview.validation.canPublish}
                     onClick={publishToPlatformDraft}
                   >
-                    {isPublishing ? "发布中..." : `一键发布到 ${activePlatform.name} 草稿`}
+                    {isPublishing ? "正在送往创作页..." : `确认并发布到 ${activePlatform.name} 创作页`}
                   </button>
+                  <p className="publish-final-note">
+                    为了符合真实平台规则，最终“发布”由你在官方创作页手动确认；本系统负责生成、校验、复制和打开发布入口。
+                  </p>
                   <button
                     type="button"
                     className="ghost-action"
