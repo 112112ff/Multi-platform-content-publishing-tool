@@ -8,13 +8,7 @@ ContentBridge 是一个面向创作者的多平台内容发布工具 MVP，对�
  https://pan.baidu.com/s/1d2PR-AmixOXYD_UT7NcJSg?pwd=1234 
 ```
 
-线上体验地址：
 
-```txt
-https://contentbridge.onrender.com
-```
-
-Render 免费实例冷启动可能需要约 50 秒，页面打开后可点击“填入演示原文”快速体验完整链路。
 
 ## 核心亮点
 
