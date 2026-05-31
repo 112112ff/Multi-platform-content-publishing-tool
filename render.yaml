@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: contentbridge-agent-proxy
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run agent:proxy
+    healthCheckPath: /api/agent-health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: MINIMAX_API_KEY
+        sync: false
+      - key: MINIMAX_MODEL
+        value: MiniMax-M2.7
+      - key: MINIMAX_API_URL
+        value: https://api.minimaxi.com/v1/chat/completions

@@ -28,6 +28,8 @@ ContentBridge 是一个面向创作者的多平台内容发布工具 MVP，对�
 
 ## MiniMax Agent
 
+如果需要让评审员下载项目后直接使用团队提供的 AI 生成能力，请先部署线上代理服务，再把前端默认接口指向该代理。部署步骤见 [docs/12-online-agent-proxy.md](./docs/12-online-agent-proxy.md)。仓库只应保存代理 URL，不能保存真实 API key。
+
 项目已接入 MiniMax OpenAI 兼容 Chat Completions API。为了避免 API key 暴露，前端不会直接请求 MiniMax，而是调用本地代理：
 
 ```txt
@@ -123,6 +125,7 @@ npm run test:run
 - [参赛提交说明](./docs/07-submission-brief.md)
 - [Agent 单平台发布流程](./docs/09-agent-single-platform-flow.md)
 - [MiniMax Agent 接入说明](./docs/10-minimax-agent-integration.md)
+- [线上 AI 代理部署说明](./docs/12-online-agent-proxy.md)
 - [评委运行与提交说明](./docs/11-judge-runbook.md)
 - [浏览器扩展 Publisher Bridge](./extension/README.md)
 

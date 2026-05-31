@@ -18,7 +18,8 @@ if (existsSync(envPath)) {
   }
 }
 
-const port = Number(process.env.MINIMAX_PROXY_PORT ?? 8787);
+const port = Number(process.env.PORT ?? process.env.MINIMAX_PROXY_PORT ?? 8787);
+const host = process.env.MINIMAX_PROXY_HOST ?? "0.0.0.0";
 const model = process.env.MINIMAX_MODEL ?? "MiniMax-M2.7";
 const apiUrl = process.env.MINIMAX_API_URL ?? "https://api.minimaxi.com/v1/chat/completions";
 const apiKey = process.env.MINIMAX_API_KEY;
@@ -462,12 +463,28 @@ const requestPlatformPack = async (payload) => {
 };
 
 const server = http.createServer(async (request, response) => {
+  const requestPath = new URL(
+    request.url ?? "/",
+    `http://${request.headers.host ?? "localhost"}`,
+  ).pathname;
+
   if (request.method === "OPTIONS") {
     sendJson(response, 200, { ok: true });
     return;
   }
 
-  if (request.method === "GET" && request.url === "/api/agent-health") {
+  if (request.method === "GET" && requestPath === "/") {
+    sendJson(response, 200, {
+      ok: true,
+      service: "ContentBridge MiniMax proxy",
+      endpoints: ["/api/agent-health", "/api/agent-plan", "/api/platform-pack"],
+      configured: Boolean(apiKey),
+      model,
+    });
+    return;
+  }
+
+  if (request.method === "GET" && requestPath === "/api/agent-health") {
     sendJson(response, 200, {
       ok: true,
       provider: "minimax",
@@ -480,7 +497,7 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  if (request.method === "POST" && request.url === "/api/platform-pack") {
+  if (request.method === "POST" && requestPath === "/api/platform-pack") {
     try {
       const body = await readBody(request);
       const payload = JSON.parse(body || "{}");
@@ -511,7 +528,7 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  if (request.method !== "POST" || request.url !== "/api/agent-plan") {
+  if (request.method !== "POST" || requestPath !== "/api/agent-plan") {
     sendJson(response, 404, { ok: false, error: "Not found" });
     return;
   }
@@ -542,6 +559,8 @@ const server = http.createServer(async (request, response) => {
   }
 });
 
-server.listen(port, "127.0.0.1", () => {
-  console.log(`MiniMax agent proxy listening on http://127.0.0.1:${port}`);
+server.listen(port, host, () => {
+  const localUrl = `http://127.0.0.1:${port}`;
+  console.log(`MiniMax agent proxy listening on ${localUrl}`);
+  console.log(`Host binding: ${host}`);
 });
