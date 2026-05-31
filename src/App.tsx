@@ -8,6 +8,7 @@ import {
   type AgentOperationPlan,
 } from "./integrations/matrixOperationEngine";
 import { adaptContentForSelectedPlatforms } from "./services/adaptContent";
+import { sendJobsToExtensionBridge } from "./services/extensionBridge";
 import { deliverPreviewToReceiver } from "./services/realDelivery";
 import type { PlatformPreview } from "./services/adaptContent";
 import type { AdaptedContent, ContentInput } from "./types/content";
@@ -618,6 +619,47 @@ function App() {
     setIsPublishing(false);
   };
 
+  const deliverViaExtensionBridge = async () => {
+    if (!operationPlan || !operationPlan.publishJobs.length) {
+      return;
+    }
+
+    setIsPublishing(true);
+    const createdAt = new Date().toISOString();
+    const results = await sendJobsToExtensionBridge({
+      jobs: operationPlan.publishJobs.map((job) => {
+        const account = connectedAccounts.find((item) => item.id === job.accountId);
+        const preview = previews.find(
+          (item) => item.adapted.platformId === job.platformId,
+        );
+
+        return {
+          job,
+          preview: preview ?? previews[0],
+          accountName: account?.displayName ?? getPlatformLabel(job.platformId),
+          platformName: getPlatformLabel(job.platformId),
+          createdAt,
+        };
+      }).filter((item) => Boolean(item.preview)),
+    });
+
+    setPublishResults(results);
+    setMessages((current) => [
+      ...current,
+      createMessage(
+        "assistant",
+        `浏览器扩展 Bridge 处理完成：${
+          results.filter((result) => result.status === "success").length
+        } 个任务已发送，${
+          results.filter((result) => result.status === "failed").length
+        } 个失败，${
+          results.filter((result) => result.status === "blocked").length
+        } 个被发布体检拦截。`,
+      ),
+    ]);
+    setIsPublishing(false);
+  };
+
   const agentPanel = (
     <section className="agent-card" aria-labelledby="agent-title">
       <div className="agent-heading">
@@ -984,6 +1026,9 @@ function App() {
                     onReceiverUrlChange={setReceiverUrl}
                     onDeliver={() => {
                       void deliverPublishPlan();
+                    }}
+                    onDeliverToExtension={() => {
+                      void deliverViaExtensionBridge();
                     }}
                   />
                 </>

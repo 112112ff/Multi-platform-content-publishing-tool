@@ -13,6 +13,7 @@ interface MatrixDeliveryPanelProps {
   onOpenAccountModal: (reason: string) => void;
   onReceiverUrlChange: (value: string) => void;
   onDeliver: () => void;
+  onDeliverToExtension: () => void;
 }
 
 export function MatrixDeliveryPanel({
@@ -28,6 +29,7 @@ export function MatrixDeliveryPanel({
   onOpenAccountModal,
   onReceiverUrlChange,
   onDeliver,
+  onDeliverToExtension,
 }: MatrixDeliveryPanelProps) {
   return (
     <section className="matrix-plan-card">
@@ -84,6 +86,17 @@ export function MatrixDeliveryPanel({
       >
         {isPublishing ? "真实投递中..." : "真实投递到接收端"}
       </button>
+      <button
+        type="button"
+        className="extension-delivery-button"
+        disabled={!publishJobsLength || isPublishing}
+        onClick={onDeliverToExtension}
+      >
+        {isPublishing ? "发送中..." : "发送到浏览器扩展"}
+      </button>
+      <p className="delivery-note">
+        浏览器扩展路线会复用用户自己的平台登录态，打开创作页并尝试填充草稿，最终发布仍需人工确认。
+      </p>
       {publishResults.length ? (
         <div className="publish-result-list" aria-label="真实投递结果">
           {publishResults.map((result) => (

@@ -18,6 +18,7 @@ http://127.0.0.1:5173/
 ```
 
 3. 准备一个真实接收端 URL。推荐使用 `https://webhook.site/` 创建临时 URL，也可以使用团队自建后端。
+4. 如果要展示平台创作页辅助填充，按 [extension/README.md](../extension/README.md) 安装 ContentBridge Publisher Bridge 浏览器扩展，并提前登录目标平台账号。
 
 ## 讲解结构
 
@@ -25,13 +26,13 @@ http://127.0.0.1:5173/
 
 建议话术：
 
-> 我们选择的是题目二，多平台内容发布工具。ContentBridge 不是简单复制粘贴工具，而是一个面向创作者的 Agent 发布助手。用户先用一句话说明目标，系统再生成不同平台版本，并完成发布体检、账号矩阵任务和真实 Webhook 投递。
+> 我们选择的是题目二，多平台内容发布工具。ContentBridge 不是简单复制粘贴工具，而是一个面向创作者的 Agent 发布助手。用户先用一句话说明目标，系统再生成不同平台版本，并完成发布体检、账号矩阵任务、真实 Webhook 投递和浏览器扩展辅助填充。
 
 要点：
 
 - 对应题目二。
 - 支持公众号、知乎、B站、小红书、微博、抖音。
-- 当前真实投递链路是 HTTP POST 到用户配置的接收端，不伪造官方平台发布结果。
+- 当前真实投递链路包括 HTTP POST 到用户配置的接收端，以及浏览器扩展打开平台创作页辅助填充草稿，不伪造官方平台发布结果。
 
 ### 2. 爆品灵感库
 
@@ -109,7 +110,22 @@ http://127.0.0.1:5173/
 - 如果没填 URL 或内容体检未通过，系统会阻断，不伪造成功。
 - 未来可以把接收端替换为带 OAuth 的后端 Publisher。
 
-### 7. 架构说明
+### 7. 浏览器扩展 Publisher Bridge
+
+操作：
+
+1. 确认 Chrome / Edge 已加载 `extension` 目录下的扩展。
+2. 在 ContentBridge 页面点击“发送到浏览器扩展”。
+3. 展示扩展打开的平台创作页。
+4. 如果页面 DOM 被识别，展示标题/正文自动填入；如果没有识别，展示右下角草稿面板并复制内容。
+
+要点：
+
+- 这是国内平台更现实的一键发布路线：利用用户自己的浏览器登录态，不要求用户把账号密码交给系统。
+- 扩展不保存密码、Cookie 或 token。
+- 最终发布仍由用户在官方页面确认，避免伪造发布成功。
+
+### 8. 架构说明
 
 建议展示文件：
 
@@ -117,12 +133,14 @@ http://127.0.0.1:5173/
 - `src/adapters/registry.ts`
 - `src/services/adaptContent.ts`
 - `src/integrations/matrixOperationEngine.ts`
+- `src/services/extensionBridge.ts`
+- `extension/background.js`
 
 建议话术：
 
-> 平台差异被封装在 PlatformAdapter 中，每个平台实现 adapt、validate、publish。矩阵运营引擎负责账号通道、热点任务和发布路线。真实平台接入时，可以在后端实现 Publisher，前端主流程不需要重写。
+> 平台差异被封装在 PlatformAdapter 中，每个平台实现 adapt、validate、publish。矩阵运营引擎负责账号通道、热点任务和发布路线。真实平台接入有三条路线：Webhook 接收端、浏览器扩展 Bridge、官方 OAuth Publisher。前端主流程不需要重写。
 
-### 8. 工程合规
+### 9. 工程合规
 
 要点：
 
@@ -142,4 +160,5 @@ http://127.0.0.1:5173/
 - 展示发布体检。
 - 展示账号连接弹窗。
 - 展示 webhook.site 收到真实 POST。
+- 如时间允许，展示浏览器扩展打开平台创作页并填充草稿。
 - README 中补充 Demo 视频链接。

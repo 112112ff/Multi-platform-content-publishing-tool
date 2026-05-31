@@ -519,6 +519,29 @@ p {
   cursor: not-allowed;
 }
 
+.extension-delivery-button {
+  background: #0b6f78;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 950;
+  margin-top: 0.5rem;
+  padding: 0.78rem 0.9rem;
+  width: 100%;
+}
+
+.extension-delivery-button:disabled {
+  background: #9cafb5;
+  cursor: not-allowed;
+}
+
+.delivery-note {
+  color: #60747a;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  margin: 0.55rem 0 0;
+}
+
 .publish-result-list {
   display: grid;
   gap: 0.55rem;

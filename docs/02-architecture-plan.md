@@ -44,7 +44,7 @@ ContentInput
   -> AdaptedContent
   -> PlatformAdapter.validate()
   -> ValidationResult + HealthScore
-  -> LocalPublisher / WebhookPublisher / OfficialPlatformPublisher
+  -> LocalPublisher / WebhookPublisher / BrowserExtensionPublisher / OfficialPlatformPublisher
   -> PublishResult
   -> PublishHistory
 ```
@@ -108,10 +108,26 @@ export interface PlatformAdapter {
 
 ## 发布通道设计
 
-MVP 当前实现了两类可运行发布通道：
+MVP 当前实现了三类可运行发布通道：
 
 - 本地校验通道：调用各平台 `adapter.validate()` 和任务模型生成草稿、阻塞或可投递状态，用于稳定展示平台规则。
 - Webhook 实发通道：前端把每个平台适配后的内容真实 POST 到用户配置的 Webhook URL，接收端可以是 webhook.site、团队自建后端、自动化机器人或未来官方平台代理服务。
+- 浏览器扩展 Publisher Bridge：前端通过 `window.postMessage` 把发布任务发送给本地扩展，扩展复用用户自己的浏览器登录态打开平台创作页，并尝试填充标题、正文和标签。最终发布由用户在平台页面人工确认。
+
+浏览器扩展路线的数据流：
+
+```txt
+Frontend Publish Queue
+  -> extensionBridge.ts
+  -> window.postMessage
+  -> extension/page-bridge.js
+  -> extension/background.js
+  -> chrome.tabs.create(platform creator url)
+  -> extension/platform-fill.js
+  -> user confirms publish on platform page
+```
+
+这条路线适合小红书、知乎、B站、抖音等官方 API 不稳定或权限门槛高的平台。它不保存账号密码、Cookie 或 token，也不绕过平台审核，只把 ContentBridge 生成的草稿送到用户已登录的平台创作环境。
 
 未来接入官方发布时，建议新增后端 `OfficialPlatformPublisher`：
 
@@ -180,6 +196,7 @@ export const platformAdapters = [
 - 发布队列
 - Webhook 投递结果
 - Webhook 实发 payload
+- 浏览器扩展 Bridge 草稿填充任务
 
 这证明扩展更多平台不仅是文档设计，也已经落到可运行功能里。
 
