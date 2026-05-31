@@ -17,7 +17,7 @@ API Key 只放在部署平台的环境变量里。GitHub 仓库只保存代理�
 
 ## 已内置的代理接口
 
-服务入口脚本位于：
+服务入口文件位于：
 
 ```txt
 scripts/minimax-proxy.mjs
@@ -88,7 +88,7 @@ $env:AGENT_PROXY_BASE_URL="https://你的服务域名"
 npm run agent:check
 ```
 
-检查脚本会真实请求 `/api/platform-pack`，并确认 6 个平台都返回了可发布的标题和正文。
+检查命令会真实请求 `/api/platform-pack`，并确认 6 个平台都返回了可发布的标题和正文。
 
 ## 前端如何调用线上 API
 

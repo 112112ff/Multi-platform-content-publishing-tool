@@ -16,8 +16,6 @@ https://contentbridge.onrender.com
 
 Render 免费实例冷启动可能需要约 50 秒，页面打开后可点击“填入演示原文”快速体验完整链路。
 
-建议录制脚本见 [docs/06-demo-script.md](./docs/06-demo-script.md)。
-
 ## 核心亮点
 
 - 发布助理主流程：支持多轮自然语言沟通，结合完整对话生成多平台发布包。
@@ -140,7 +138,6 @@ npm run test:run
 提交材料：
 
 - [开发协作与 PR 规范](./docs/03-team-collaboration.md)
-- [Demo 录制脚本](./docs/06-demo-script.md)
 - [参赛提交说明](./docs/07-submission-brief.md)
 
 ## 开发过程与 PR

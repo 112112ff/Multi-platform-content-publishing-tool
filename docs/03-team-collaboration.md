@@ -50,7 +50,7 @@
 9. Webhook 真实投递。
 10. 浏览器扩展 Publisher Bridge。
 11. MiniMax 代理和离线降级。
-12. README、Demo 脚本和运行说明。
+12. README、Demo 材料和运行说明。
 
 ## 合并前检查
 
