@@ -54,7 +54,7 @@ export async function checkMiniMaxAgentStatus(): Promise<MiniMaxAgentStatus> {
     return {
       mode: "connected",
       model: data.model,
-      message: "发布助理已增强，可以生成更灵活的发布草稿。",
+      message: "增强生成已就绪；如果生成失败，会自动切换离线规则。",
     };
   } catch {
     return {
