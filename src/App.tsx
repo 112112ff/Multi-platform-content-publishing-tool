@@ -17,7 +17,7 @@ import {
 } from "./services/minimaxAgent";
 import { sendJobsToExtensionBridge } from "./services/extensionBridge";
 import { deliverPreviewToReceiver } from "./services/realDelivery";
-import type { ContentInput } from "./types/content";
+import type { AdaptedContent, ContentInput } from "./types/content";
 import type { ConnectedAccount, DeliveryResult } from "./types/delivery";
 
 type ChatMessage = {
@@ -27,6 +27,8 @@ type ChatMessage = {
 };
 
 type FlowStep = "idle" | "account" | "publish" | "done";
+
+const defaultPlatformIds = platformCatalog.map((platform) => platform.id);
 
 const emptyContent: ContentInput = {
   title: "",
@@ -138,31 +140,28 @@ function App() {
     hotness: "trend",
   });
   const [publishResults, setPublishResults] = useState<DeliveryResult[]>([]);
+  const [previewOverrides, setPreviewOverrides] = useState<Record<string, AdaptedContent>>({});
 
   const activePlatform = getPlatformById(activePlatformId);
   const activeAccount = accounts.find((account) => account.platformId === activePlatformId);
   const previews = useMemo(() => adaptContentForSelectedPlatforms(content), [content]);
-  const activePreview = previews[0];
+  const activePreview =
+    previews.find((preview) => preview.adapted.platformId === activePlatformId) ?? previews[0];
   const cleanPreview = useMemo<PlatformPreview | undefined>(() => {
     if (!activePreview) {
       return undefined;
     }
+
+    const adapted = previewOverrides[activePlatformId] ?? activePreview.adapted;
 
     return {
       ...activePreview,
       platformName: activePlatform.name,
       contentStrategy: activePlatform.promise,
       tone: activePlatform.persona,
-      adapted: {
-        platformId: activePlatformId,
-        title: content.title,
-        body: content.body,
-        summary: content.body.slice(0, 96),
-        tags: content.tags,
-        strategyNotes: [activePlatform.promise],
-      },
+      adapted,
     };
-  }, [activePlatform, activePlatformId, activePreview, content]);
+  }, [activePlatform, activePlatformId, activePreview, previewOverrides]);
   const operationPlan = useMemo(() => {
     if (!content.selectedPlatformIds.length) {
       return null;
@@ -261,16 +260,20 @@ function App() {
     }
 
     setActivePlatformId(platformId);
-    setContent(plan.content);
+    setContent({
+      ...plan.content,
+      selectedPlatformIds: defaultPlatformIds,
+    });
+    setPreviewOverrides({});
     setPublishResults([]);
-    setFlowStep("account");
-    setAccountModalOpen(true);
+    setFlowStep("publish");
+    setAccountModalOpen(false);
     setIsAgentThinking(false);
     pushMessages(
       createMessage("assistant", plan.reply),
       createMessage(
         "assistant",
-        `${plan.source === "minimax" ? "发布助理已生成草稿" : "已使用离线发布规则生成草稿"}。右侧预览已经合并本轮对话和偏好，你可以继续补充要求，也可以直接修改标题、正文和标签。`,
+        `${plan.source === "minimax" ? "发布助理已生成草稿" : "已使用离线发布规则生成草稿"}。右侧已经生成多平台发布包，你可以逐个平台检查标题、正文和标签，再一键生成发布队列。`,
       ),
     );
   };
@@ -307,11 +310,13 @@ function App() {
       return;
     }
 
-    setContent((current) => ({
+    setPreviewOverrides((current) => ({
       ...current,
-      title: patch.title ?? current.title,
-      body: patch.body ?? current.body,
-      tags: patch.tags ?? current.tags,
+      [activePlatformId]: {
+        ...cleanPreview.adapted,
+        ...patch,
+        platformId: activePlatformId,
+      },
     }));
   };
 
@@ -335,6 +340,14 @@ function App() {
         createdAt: new Date().toISOString(),
       },
     ];
+  };
+
+  const getPreviewForPlatform = (preview: PlatformPreview): PlatformPreview => {
+    const platformId = preview.adapted.platformId;
+    return {
+      ...preview,
+      adapted: previewOverrides[platformId] ?? preview.adapted,
+    };
   };
 
   const openPlatformCreatorPage = async (): Promise<DeliveryResult | null> => {
@@ -407,6 +420,42 @@ function App() {
     );
   };
 
+  const publishAllDrafts = async () => {
+    if (!previews.length) {
+      return;
+    }
+
+    setIsPublishing(true);
+
+    const queuedResults: DeliveryResult[] = previews.map((preview) => {
+      const platform = getPlatformById(preview.adapted.platformId);
+      const account =
+        accounts.find((item) => item.platformId === preview.adapted.platformId) ??
+        activeAccount;
+
+      return {
+        id: `queue-${preview.adapted.platformId}-${Date.now()}`,
+        platformId: preview.adapted.platformId,
+        accountName: account?.displayName ?? platform.accountName,
+        status: "success",
+        executionRoute: "multi-platform-draft-queue",
+        message: `${platform.name} 已生成平台化草稿，发布前可打开官方创作页做最终确认。`,
+        createdAt: new Date().toISOString(),
+        receiverUrl: platform.creatorUrl || platform.loginUrl,
+      };
+    });
+
+    setPublishResults(queuedResults);
+    setIsPublishing(false);
+    setFlowStep("done");
+    pushMessages(
+      createMessage(
+        "assistant",
+        `已生成 ${queuedResults.length} 个平台的发布队列。你可以先检查右侧各平台版本，再逐个平台打开官方创作页确认发布。`,
+      ),
+    );
+  };
+
   const publishToReceiver = async () => {
     if (!receiverUrl.trim() || !cleanPreview || !activeJob || !activeAccount) {
       return;
@@ -442,13 +491,13 @@ function App() {
 
   return (
     <main className="consumer-shell">
-      <section className="agent-home" aria-label="ContentBridge 发布助理">
+      <section className="agent-home" aria-label="ContentBridge 多平台发布助理">
         <div className="brand-row">
           <div>
             <span>ContentBridge</span>
-            <h1>说一句话，发布助理帮你走完单平台发布流程</h1>
+            <h1>输入一份内容，生成全平台发布包</h1>
           </div>
-          <strong>{cleanPreview ? activePlatform.name : "发布助理"}</strong>
+          <strong>{cleanPreview ? `${previews.length} 个平台已适配` : "多平台发布助理"}</strong>
         </div>
 
         <div className="agent-layout">
@@ -465,9 +514,9 @@ function App() {
             </div>
 
             <div className="agent-status">
-              <span className={stepState("idle")}>说出需求</span>
-              <span className={stepState("account")}>确认账号</span>
-              <span className={stepState("publish")}>一键发布</span>
+              <span className={stepState("idle")}>输入内容</span>
+              <span className={stepState("publish")}>平台适配</span>
+              <span className={stepState("done")}>发布队列</span>
             </div>
 
             <div className="chat-stream" aria-live="polite">
@@ -569,12 +618,12 @@ function App() {
             </form>
           </aside>
 
-          <section className="publish-flow-panel" aria-label="单平台发布流程">
+          <section className="publish-flow-panel" aria-label="多平台发布包">
             {!cleanPreview ? (
               <div className="empty-product-guide">
-                <p>主流程保持很轻：输入一句话，系统会判断一个目标平台，生成草稿，再带你确认账号和发布。</p>
+                <p>把一份原始内容交给发布助理，系统会自动生成公众号、知乎、B站、小红书、微博、抖音版本，并整理成发布队列。</p>
                 <div className="guide-lanes">
-                  {platformCatalog.slice(0, 4).map((platform) => (
+                  {platformCatalog.map((platform) => (
                     <button
                       type="button"
                       key={platform.id}
@@ -593,18 +642,41 @@ function App() {
               <>
                 <header className="single-platform-header">
                   <div>
-                    <span>当前平台</span>
-                    <h2>{activePlatform.name}</h2>
-                    <p>{activePlatform.promise}</p>
+                    <span>多平台发布包</span>
+                    <h2>{content.title}</h2>
+                    <p>同一份内容已按平台语境自动改写，可逐个平台编辑和发布。</p>
                   </div>
-                  <button type="button" onClick={() => setAccountModalOpen(true)}>
-                    {accountConnected ? "账号已确认" : "确认账号"}
+                  <button type="button" onClick={publishAllDrafts}>
+                    {isPublishing ? "生成中..." : "一键生成发布队列"}
                   </button>
                 </header>
 
+                <div className="platform-package-grid">
+                  {previews.map((preview) => {
+                    const platform = getPlatformById(preview.adapted.platformId);
+                    const displayPreview = getPreviewForPlatform(preview);
+
+                    return (
+                      <button
+                        type="button"
+                        className={preview.adapted.platformId === activePlatformId ? "active" : ""}
+                        key={preview.adapted.platformId}
+                        onClick={() => setActivePlatformId(platform.id)}
+                      >
+                        <span>{platform.name}</span>
+                        <strong>{displayPreview.adapted.title}</strong>
+                        <small>{displayPreview.contentStrategy}</small>
+                        <b className={scoreTone(displayPreview.validation.score)}>
+                          {displayPreview.validation.score}
+                        </b>
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <div className="hot-topic-card">
                   <div>
-                    <span>热点推荐</span>
+                    <span>{activePlatform.name} 热点推荐</span>
                     <strong>{hotnessLabels[preferences.hotness]} · {styleLabels[preferences.style]}</strong>
                   </div>
                   <ul>
@@ -615,6 +687,15 @@ function App() {
                 </div>
 
                 <div className="draft-editor-card">
+                  <div className="draft-editor-heading">
+                    <div>
+                      <span>正在编辑</span>
+                      <h3>{activePlatform.name} 版本</h3>
+                    </div>
+                    <button type="button" onClick={() => setAccountModalOpen(true)}>
+                      {accountConnected ? "账号已确认" : "确认账号"}
+                    </button>
+                  </div>
                   <label>
                     标题
                     <input
@@ -671,6 +752,14 @@ function App() {
                     onClick={publishToPlatformDraft}
                   >
                     {isPublishing ? "发布中..." : `一键发布到 ${activePlatform.name} 草稿`}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-action"
+                    disabled={isPublishing}
+                    onClick={publishAllDrafts}
+                  >
+                    一键生成全部平台发布队列
                   </button>
                   <button type="button" className="ghost-action" onClick={copyDraft}>
                     复制草稿

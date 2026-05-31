@@ -2185,6 +2185,91 @@ p {
   padding: 0.65rem 0.75rem;
 }
 
+.platform-package-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.platform-package-grid button {
+  background: #ffffff;
+  border: 1px solid #d7e1e4;
+  border-radius: 12px;
+  color: #172026;
+  cursor: pointer;
+  display: grid;
+  gap: 0.35rem;
+  min-height: 150px;
+  padding: 0.85rem;
+  position: relative;
+  text-align: left;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.platform-package-grid button:hover,
+.platform-package-grid button.active {
+  border-color: #0e6b5f;
+  box-shadow: 0 12px 28px rgba(14, 107, 95, 0.12);
+  transform: translateY(-1px);
+}
+
+.platform-package-grid span {
+  color: #0e6b5f;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.platform-package-grid strong {
+  color: #172026;
+  line-height: 1.35;
+}
+
+.platform-package-grid small {
+  color: #60747a;
+  line-height: 1.45;
+}
+
+.platform-package-grid b {
+  border-radius: 999px;
+  bottom: 0.75rem;
+  font-size: 0.76rem;
+  padding: 0.25rem 0.48rem;
+  position: absolute;
+  right: 0.75rem;
+}
+
+.draft-editor-heading {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.draft-editor-heading span {
+  color: #4f6f75;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.draft-editor-heading h3 {
+  color: #172026;
+  font-size: 1.35rem;
+  margin: 0.15rem 0 0;
+}
+
+.draft-editor-heading button {
+  background: #f5f8f8;
+  border: 1px solid #d7e1e4;
+  border-radius: 10px;
+  color: #203139;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 0.72rem 0.85rem;
+}
+
 .draft-editor-card {
   border: 1px solid #d7e1e4;
   border-radius: 14px;
@@ -2423,6 +2508,7 @@ p {
   }
 
   .guide-lanes,
+  .platform-package-grid,
   .preference-panel,
   .publish-action-card,
   .modal-action-row {
