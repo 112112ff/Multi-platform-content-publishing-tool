@@ -127,41 +127,7 @@ npm run test:run
 - [MiniMax Agent 接入说明](./docs/10-minimax-agent-integration.md)
 - [运行与体验说明](./docs/11-user-runbook.md)
 - [线上 AI 代理部署说明](./docs/12-online-agent-proxy.md)
-- [浏览器扩展 Publisher Bridge](./extension/README.md)
 
-提交材料：
 
-- [开发协作与 PR 规范](./docs/03-team-collaboration.md)
-- [参赛提交说明](./docs/07-submission-brief.md)
 
-## 开发过程与 PR
 
-本项目按比赛要求通过小粒度 PR 持续提交。每个 PR 只做一件事，PR 标题用一句话说明新增或修改内容，PR 描述必须包含功能描述、实现思路和测试方式。两人组队时，应确保两名队员都使用自己的 GitHub 账号提交 commit，并在 PR 备注中写清楚具体分工。每个 PR 合并后，`main` 分支必须保持可运行，用户在任意时间查看都应能复现演示效果。
-
-当前核心交付分支：
-
-```txt
-codex/final-product-scope-polish
-```
-
-最终提交时请确认该分支已通过 PR 合并到 `main`，并且 `main` 可以直接 `npm install`、`npm run dev`、`npm run build`、`npm run test:run`。
-
-## 比赛周期
-
-```txt
-2026-05-29 00:00 至 2026-05-31 23:59
-```
-
-所有 commit 必须落在上述时间范围内。开发过程必须持续通过 PR 和 commit 推进，不能最后一天一次性导入全部代码。
-
-## 最终提交前检查
-
-- 仓库在截止后改为 Public。
-- README 中补充可播放的 Demo 视频链接。
-- README 中保留线上体验地址，并确认隐身窗口可访问。
-- `npm install`、`npm run dev`、`npm run dev:agent`、`npm run build`、`npm run test:run` 可运行。
-- 线上环境 `https://contentbridge.onrender.com/api/agent-health` 返回 `configured=true`。
-- README 列明依赖和原创功能边界。
-- PR 描述完整且与代码变更一致。
-- 两名队员均有各自账号的 commit 和 PR 记录。
-- 没有提交 `.env`、密钥、账号密码等敏感信息。
