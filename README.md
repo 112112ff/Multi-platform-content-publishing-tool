@@ -105,6 +105,7 @@ npm run test:run
 - [参赛提交说明](./docs/07-submission-brief.md)
 - [Agent 单平台发布流程](./docs/09-agent-single-platform-flow.md)
 - [MiniMax Agent 接入说明](./docs/10-minimax-agent-integration.md)
+- [评委运行与提交说明](./docs/11-judge-runbook.md)
 - [浏览器扩展 Publisher Bridge](./extension/README.md)
 
 ## 团队协作

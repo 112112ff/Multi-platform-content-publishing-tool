@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   accountChannels,
   getPlatformById,
@@ -7,7 +7,11 @@ import {
 } from "./services/agentPlanner";
 import { adaptContentForSelectedPlatforms, type PlatformPreview } from "./services/adaptContent";
 import { buildAgentOperationPlan, type PublishJob } from "./integrations/matrixOperationEngine";
-import { buildAgentPlanWithMiniMax } from "./services/minimaxAgent";
+import {
+  buildAgentPlanWithMiniMax,
+  checkMiniMaxAgentStatus,
+  type MiniMaxAgentStatus,
+} from "./services/minimaxAgent";
 import { deliverPreviewToReceiver } from "./services/realDelivery";
 import { sendJobsToExtensionBridge } from "./services/extensionBridge";
 import type { ContentInput } from "./types/content";
@@ -93,6 +97,10 @@ function App() {
   const [showTestReceiver, setShowTestReceiver] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isAgentThinking, setIsAgentThinking] = useState(false);
+  const [agentStatus, setAgentStatus] = useState<MiniMaxAgentStatus>({
+    mode: "proxy-missing",
+    message: "正在检测 MiniMax Agent...",
+  });
   const [publishResults, setPublishResults] = useState<DeliveryResult[]>([]);
 
   const activePlatform = getPlatformById(activePlatformId);
@@ -158,6 +166,20 @@ function App() {
     return issues;
   }, [activePlatformId, cleanPreview, content.coverUrl, content.videoUrl]);
   const accountConnected = activeAccount?.status === "connected";
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void checkMiniMaxAgentStatus().then((status) => {
+      if (!cancelled) {
+        setAgentStatus(status);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const pushMessages = (...newMessages: ChatMessage[]) => {
     setMessages((current) => [...current, ...newMessages]);
@@ -346,6 +368,18 @@ function App() {
 
         <div className="agent-layout">
           <aside className="agent-conversation">
+            <div className={`agent-runtime-status ${agentStatus.mode}`}>
+              <b>
+                {agentStatus.mode === "connected"
+                  ? "MiniMax 已连接"
+                  : agentStatus.mode === "key-missing"
+                    ? "缺少 MiniMax Key"
+                    : "本地 Agent 降级"}
+              </b>
+              <p>{agentStatus.message}</p>
+              {agentStatus.model ? <span>{agentStatus.model}</span> : null}
+            </div>
+
             <div className="agent-status">
               <span className={stepState("idle")}>说出需求</span>
               <span className={stepState("account")}>确认账号</span>

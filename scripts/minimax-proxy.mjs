@@ -172,6 +172,19 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "GET" && request.url === "/api/agent-health") {
+    sendJson(response, 200, {
+      ok: true,
+      provider: "minimax",
+      configured: Boolean(apiKey),
+      model,
+      message: apiKey
+        ? "MiniMax proxy is running and API key is configured."
+        : "MiniMax proxy is running but MINIMAX_API_KEY is not configured.",
+    });
+    return;
+  }
+
   if (request.method !== "POST" || request.url !== "/api/agent-plan") {
     sendJson(response, 404, { ok: false, error: "Not found" });
     return;
