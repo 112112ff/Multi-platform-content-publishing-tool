@@ -5,15 +5,15 @@ import {
   platformCatalog,
   type ProductPlatformId,
 } from "./services/agentPlanner";
-import { adaptContentForSelectedPlatforms, type PlatformPreview } from "./services/adaptContent";
 import { buildAgentOperationPlan, type PublishJob } from "./integrations/matrixOperationEngine";
+import { adaptContentForSelectedPlatforms, type PlatformPreview } from "./services/adaptContent";
 import {
   buildAgentPlanWithMiniMax,
   checkMiniMaxAgentStatus,
   type MiniMaxAgentStatus,
 } from "./services/minimaxAgent";
-import { deliverPreviewToReceiver } from "./services/realDelivery";
 import { sendJobsToExtensionBridge } from "./services/extensionBridge";
+import { deliverPreviewToReceiver } from "./services/realDelivery";
 import type { ContentInput } from "./types/content";
 import type { ConnectedAccount, DeliveryResult } from "./types/delivery";
 
@@ -23,7 +23,7 @@ type ChatMessage = {
   text: string;
 };
 
-type FlowStep = "idle" | "draft" | "account" | "publish" | "done";
+type FlowStep = "idle" | "account" | "publish" | "done";
 
 const emptyContent: ContentInput = {
   title: "",
@@ -85,12 +85,13 @@ function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     createMessage(
       "assistant",
-      "告诉我你想发什么、希望发到哪个平台。我会调用 MiniMax 生成单平台草稿；如果本地没有配置 API key，会自动使用离线规划。",
+      "告诉我你想发什么、希望发到哪个平台。我会帮你判断目标平台，生成草稿，再带你确认账号并发布。",
     ),
   ]);
   const [agentInput, setAgentInput] = useState("");
   const [flowStep, setFlowStep] = useState<FlowStep>("idle");
-  const [activePlatformId, setActivePlatformId] = useState<ProductPlatformId>("xiaohongshu");
+  const [activePlatformId, setActivePlatformId] =
+    useState<ProductPlatformId>("xiaohongshu");
   const [accounts, setAccounts] = useState<ConnectedAccount[]>(createAccountState);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [receiverUrl, setReceiverUrl] = useState("");
@@ -99,13 +100,12 @@ function App() {
   const [isAgentThinking, setIsAgentThinking] = useState(false);
   const [agentStatus, setAgentStatus] = useState<MiniMaxAgentStatus>({
     mode: "proxy-missing",
-    message: "正在检测 MiniMax Agent...",
+    message: "正在检测智能发布助理...",
   });
   const [publishResults, setPublishResults] = useState<DeliveryResult[]>([]);
 
   const activePlatform = getPlatformById(activePlatformId);
   const activeAccount = accounts.find((account) => account.platformId === activePlatformId);
-
   const previews = useMemo(() => adaptContentForSelectedPlatforms(content), [content]);
   const activePreview = previews[0];
   const cleanPreview = useMemo<PlatformPreview | undefined>(() => {
@@ -196,11 +196,18 @@ function App() {
     setIsAgentThinking(true);
     pushMessages(
       createMessage("user", trimmed),
-      createMessage("assistant", "我正在调用 Agent 分析需求、选择平台并生成草稿。"),
+      createMessage("assistant", "我正在分析需求、选择平台并生成草稿。"),
     );
 
     const plan = await buildAgentPlanWithMiniMax(trimmed, content);
     const platformId = plan.platform.id;
+
+    if (plan.source !== "minimax") {
+      setAgentStatus({
+        mode: "key-missing",
+        message: "智能助理暂不可用，已自动切换离线规则。请检查本地密钥是否有效。",
+      });
+    }
 
     setActivePlatformId(platformId);
     setContent(plan.content);
@@ -212,7 +219,7 @@ function App() {
       createMessage("assistant", plan.reply),
       createMessage(
         "assistant",
-        `${plan.source === "minimax" ? "MiniMax Agent 已生成草稿" : "当前未连接 MiniMax，已使用本地 Agent 生成草稿"}。我只为你打开 ${plan.platform.name} 的账号确认，不会一次弹出六个平台。`,
+        `${plan.source === "minimax" ? "智能发布助理已生成草稿" : "已使用离线发布规则生成草稿"}。我只为你打开 ${plan.platform.name} 的账号确认，不会一次弹出六个平台。`,
       ),
     );
   };
@@ -239,7 +246,7 @@ function App() {
     pushMessages(
       createMessage(
         "assistant",
-        `${activePlatform.name} 账号已确认。现在可以点右侧的一键发布，把草稿送到平台创作页或浏览器扩展。`,
+        `${activePlatform.name} 账号已确认。现在可以点右侧的一键发布，把草稿送到平台创作页。`,
       ),
     );
   };
@@ -351,7 +358,7 @@ function App() {
   };
 
   const stepState = (step: FlowStep) => {
-    const order: FlowStep[] = ["idle", "draft", "account", "publish", "done"];
+    const order: FlowStep[] = ["idle", "account", "publish", "done"];
     return order.indexOf(flowStep) >= order.indexOf(step) ? "active" : "";
   };
 
@@ -361,9 +368,9 @@ function App() {
         <div className="brand-row">
           <div>
             <span>ContentBridge</span>
-            <h1>说一句话，MiniMax 发布助理帮你走完单平台发布流程</h1>
+            <h1>说一句话，智能发布助理帮你走完单平台发布流程</h1>
           </div>
-          <strong>{cleanPreview ? activePlatform.name : "MiniMax Agent"}</strong>
+          <strong>{cleanPreview ? activePlatform.name : "智能发布助理"}</strong>
         </div>
 
         <div className="agent-layout">
@@ -371,13 +378,12 @@ function App() {
             <div className={`agent-runtime-status ${agentStatus.mode}`}>
               <b>
                 {agentStatus.mode === "connected"
-                  ? "MiniMax 已连接"
+                  ? "智能助理已配置"
                   : agentStatus.mode === "key-missing"
-                    ? "缺少 MiniMax Key"
-                    : "本地 Agent 降级"}
+                    ? "智能助理待配置"
+                    : "离线规则模式"}
               </b>
               <p>{agentStatus.message}</p>
-              {agentStatus.model ? <span>{agentStatus.model}</span> : null}
             </div>
 
             <div className="agent-status">
@@ -416,7 +422,7 @@ function App() {
                 rows={4}
               />
               <button type="submit" disabled={isAgentThinking}>
-                {isAgentThinking ? "Agent 生成中..." : "让 MiniMax Agent 生成发布流程"}
+                {isAgentThinking ? "生成中..." : "让智能发布助理生成流程"}
               </button>
             </form>
           </aside>
@@ -424,7 +430,7 @@ function App() {
           <section className="publish-flow-panel" aria-label="单平台发布流程">
             {!cleanPreview ? (
               <div className="empty-product-guide">
-                <p>主流程保持很轻：输入一句话，Agent 会判断一个目标平台，生成草稿，再带你确认账号和发布。</p>
+                <p>主流程保持很轻：输入一句话，系统会判断一个目标平台，生成草稿，再带你确认账号和发布。</p>
                 <div className="guide-lanes">
                   {platformCatalog.slice(0, 4).map((platform) => (
                     <button
