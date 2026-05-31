@@ -122,7 +122,7 @@ export async function sendJobsToExtensionBridge({
         status: ok ? "success" as const : "failed" as const,
         executionRoute: "browser-extension",
         message: ok
-          ? "已发送到浏览器扩展，扩展将打开平台创作页并尝试填充草稿。"
+          ? "已发送到浏览器扩展，扩展会打开平台创作页并尝试填充草稿。"
           : ack.error ?? "浏览器扩展未确认发布任务。",
         createdAt,
         receiverUrl: platformAck?.url ?? "ContentBridge Extension",

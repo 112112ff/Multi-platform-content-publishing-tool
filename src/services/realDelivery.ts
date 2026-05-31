@@ -1,6 +1,6 @@
 import type { PublishJob } from "../integrations/matrixOperationEngine";
-import type { PlatformPreview } from "./adaptContent";
 import type { DeliveryResult } from "../types/delivery";
+import type { PlatformPreview } from "./adaptContent";
 
 type FetchLike = typeof fetch;
 
