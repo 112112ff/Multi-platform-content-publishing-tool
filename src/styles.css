@@ -1982,7 +1982,8 @@ p {
 .quick-prompt-row button:hover,
 .guide-lanes button:hover,
 .ghost-action:hover,
-.single-platform-header button:hover {
+.single-platform-header button:hover,
+.source-draft-panel button:hover {
   background: #eaf4f1;
   border-color: #9cc8bd;
   transform: translateY(-1px);
@@ -2007,18 +2008,29 @@ p {
   padding: 0.75rem;
 }
 
+.source-draft-panel {
+  background: #ffffff;
+  border: 1px solid #cbdadd;
+  border-radius: 14px;
+  display: grid;
+  gap: 0.72rem;
+  padding: 0.8rem;
+}
+
 .brief-panel > div:first-child {
   display: grid;
   gap: 0.25rem;
 }
 
-.brief-panel span {
+.brief-panel span,
+.source-draft-panel span {
   color: #0e6b5f;
   font-size: 0.78rem;
   font-weight: 950;
 }
 
-.brief-panel b {
+.brief-panel b,
+.source-draft-panel b {
   color: #243239;
   line-height: 1.45;
 }
@@ -2033,6 +2045,48 @@ p {
 
 .brief-panel textarea {
   min-height: 82px;
+}
+
+.source-draft-panel textarea {
+  min-height: 168px;
+}
+
+.source-draft-meta {
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.source-draft-meta span {
+  background: #f2f7f7;
+  border: 1px solid #d7e1e4;
+  border-radius: 9px;
+  color: #3e5960;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0.48rem 0.55rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-draft-panel button {
+  background: #ffffff;
+  border: 1px solid #cbdadd;
+  border-radius: 10px;
+  color: #17383f;
+  cursor: pointer;
+  font-weight: 950;
+  padding: 0.72rem 0.85rem;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.source-draft-panel button:disabled {
+  color: #8a9ea4;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .platform-chip-row {
@@ -2629,6 +2683,7 @@ p {
   .guide-lanes,
   .platform-package-grid,
   .queue-lanes,
+  .source-draft-meta,
   .preference-panel,
   .publish-action-card,
   .modal-action-row {

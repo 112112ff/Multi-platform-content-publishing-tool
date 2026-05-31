@@ -16,6 +16,7 @@ import {
   checkMiniMaxAgentStatus,
   type MiniMaxAgentStatus,
 } from "./services/minimaxAgent";
+import { parseSourceContentToInput } from "./services/sourceContent";
 import { sendJobsToExtensionBridge } from "./services/extensionBridge";
 import { deliverPreviewToReceiver } from "./services/realDelivery";
 import type { AdaptedContent, ContentInput } from "./types/content";
@@ -175,6 +176,7 @@ function App() {
     ),
   ]);
   const [agentInput, setAgentInput] = useState("");
+  const [sourceText, setSourceText] = useState("");
   const [flowStep, setFlowStep] = useState<FlowStep>("idle");
   const [activePlatformId, setActivePlatformId] =
     useState<ProductPlatformId>("xiaohongshu");
@@ -201,6 +203,15 @@ function App() {
   });
   const [publishResults, setPublishResults] = useState<DeliveryResult[]>([]);
   const [previewOverrides, setPreviewOverrides] = useState<Record<string, AdaptedContent>>({});
+  const sourceDraft = useMemo(
+    () => ({
+      ...parseSourceContentToInput(sourceText, defaultPlatformIds),
+      coverUrl: content.coverUrl,
+      videoUrl: content.videoUrl,
+    }),
+    [content.coverUrl, content.videoUrl, sourceText],
+  );
+  const hasSourceDraft = Boolean(sourceText.trim());
 
   const activePlatform = getPlatformById(activePlatformId);
   const activeAccount = accounts.find((account) => account.platformId === activePlatformId);
@@ -302,7 +313,11 @@ function App() {
     setMessages((current) => [...current, ...newMessages]);
   };
 
-  const buildConfirmedPrompt = (latestInput: string, nextBrief = publishBrief) =>
+  const buildConfirmedPrompt = (
+    latestInput: string,
+    nextBrief = publishBrief,
+    sourceContent?: ContentInput,
+  ) =>
     [
       `发布主题：${nextBrief.topic || extractTopic(latestInput) || "待确认主题"}`,
       `核心表达：${nextBrief.intent || inferIntent(latestInput)}`,
@@ -312,29 +327,52 @@ function App() {
       `表达风格：${styleLabels[preferences.style]}`,
       `选题方式：${hotnessLabels[preferences.hotness]}`,
       `用户提供的真实热点/参考素材：${nextBrief.trendSignals || "未提供；不要编造实时热榜，只能给出平台化选题角度"}`,
+      sourceContent?.body
+        ? [
+            "用户提供的原文/已有草稿如下，请优先保留原文事实、观点、案例和信息密度，只做平台化改写，不要改成无关选题：",
+            `原文标题：${sourceContent.title || "未识别标题"}`,
+            `原文标签：${sourceContent.tags.join("、") || "未识别标签"}`,
+            `原文正文：${sourceContent.body.slice(0, 6000)}`,
+          ].join("\n")
+        : "用户未提供原文，需要根据 Brief 生成基础草稿。",
       `用户最新补充：${latestInput}`,
-      "请生成一个多平台发布包，每个平台都要明显符合该平台风格，不要只复制同一份内容。",
+      "请生成一个多平台发布包，每个平台都要明显符合该平台风格；如果用户提供了原文，每个平台都必须围绕原文进行标题、正文、标签重写。",
     ].join("\n");
 
   const applyAgentPrompt = async (prompt: string) => {
     const trimmed = prompt.trim();
+    const sourceContent = hasSourceDraft ? sourceDraft : content;
+    const effectivePrompt =
+      trimmed ||
+      (hasSourceDraft
+        ? "请基于左侧原文进行多平台适配，保留核心观点并优化标题、正文和标签"
+        : "");
 
-    if (!trimmed || isAgentThinking) {
+    if (!effectivePrompt || isAgentThinking) {
       return;
     }
 
     const nextBrief = {
-      topic: publishBrief.topic || extractTopic(trimmed),
-      intent: publishBrief.intent || inferIntent(trimmed),
-      audience: publishBrief.audience || inferAudience(trimmed),
+      topic: publishBrief.topic || sourceDraft.title || extractTopic(effectivePrompt),
+      intent: publishBrief.intent || inferIntent(`${effectivePrompt}\n${sourceText}`),
+      audience: publishBrief.audience || inferAudience(`${effectivePrompt}\n${sourceText}`),
       trendSignals: publishBrief.trendSignals,
     };
-    const confirmedPrompt = buildConfirmedPrompt(trimmed, nextBrief);
+    const confirmedPrompt = buildConfirmedPrompt(
+      effectivePrompt,
+      nextBrief,
+      hasSourceDraft ? sourceDraft : undefined,
+    );
 
     setPublishBrief(nextBrief);
     setAgentInput("");
     setIsAgentThinking(true);
-    const userMessage = createMessage("user", trimmed);
+    const userMessage = createMessage(
+      "user",
+      hasSourceDraft
+        ? `${effectivePrompt}\n\n已粘贴原文：${sourceDraft.title || "未命名草稿"}`
+        : effectivePrompt,
+    );
     const thinkingMessage = createMessage(
       "assistant",
       "我会结合前面的交流、发布偏好和热点方向，更新右侧预览。",
@@ -349,7 +387,7 @@ function App() {
     const platformPack = await buildPlatformPackWithMiniMax({
       prompt: confirmedPrompt,
       brief: nextBrief,
-      previousContent: content,
+      previousContent: sourceContent,
       conversation: conversationForPlan,
       preferences,
     });
@@ -391,7 +429,7 @@ function App() {
 
     const plan = await buildAgentPlanWithMiniMax(
       confirmedPrompt,
-      content,
+      sourceContent,
       conversationForPlan,
       preferences,
     );
@@ -405,10 +443,19 @@ function App() {
     }
 
     setActivePlatformId(platformId);
-    setContent({
-      ...plan.content,
-      selectedPlatformIds: defaultPlatformIds,
-    });
+    setContent(
+      hasSourceDraft
+        ? {
+            ...sourceDraft,
+            title: sourceDraft.title || plan.content.title,
+            tags: sourceDraft.tags.length ? sourceDraft.tags : plan.content.tags,
+            selectedPlatformIds: defaultPlatformIds,
+          }
+        : {
+            ...plan.content,
+            selectedPlatformIds: defaultPlatformIds,
+          },
+    );
     setPreviewOverrides({});
     setPublishResults([]);
     setFlowStep("publish");
@@ -684,6 +731,38 @@ function App() {
                   {prompt}
                 </button>
               ))}
+            </div>
+
+            <div className="source-draft-panel" aria-label="原文粘贴区">
+              <div>
+                <span>原文 / 已有草稿</span>
+                <b>把用户已有内容粘贴进来，系统会先识别标题、正文和标签，再做平台化改写</b>
+              </div>
+              <textarea
+                value={sourceText}
+                onChange={(event) => setSourceText(event.target.value)}
+                placeholder={[
+                  "可直接粘贴公众号文章、知乎回答、产品介绍、活动文案或带 #标签 的草稿。",
+                  "例如：第一行写标题，正文写观点和案例，最后一行写 #标签。",
+                ].join("\n")}
+                rows={7}
+              />
+              <div className="source-draft-meta">
+                <span>{hasSourceDraft ? `已识别：${sourceDraft.title || "未命名草稿"}` : "等待粘贴原文"}</span>
+                <span>{hasSourceDraft ? `${sourceDraft.body.length} 字正文` : "正文会用于右侧预览"}</span>
+                <span>{hasSourceDraft ? `${sourceDraft.tags.length} 个标签` : "支持 #标签 或 标签：格式"}</span>
+              </div>
+              <button
+                type="button"
+                disabled={isAgentThinking || !hasSourceDraft}
+                onClick={() =>
+                  void applyAgentPrompt(
+                    "请基于左侧原文生成多平台发布包，保留核心观点，分别优化标题、正文和标签",
+                  )
+                }
+              >
+                用原文生成多平台发布包
+              </button>
             </div>
 
             <div className="brief-panel" aria-label="发布需求确认">

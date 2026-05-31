@@ -130,6 +130,7 @@ const buildPrompt = ({ prompt, previousContent, conversation, preferences }) => 
 如果用户说“字节”且上下文包含公司、互联网、产品、增长、组织、抖音、TikTok、长文章等语义，应理解为“字节跳动公司”，不要解释成计算机字节单位。
 必须综合完整对话历史和发布偏好，不要只看最后一句。
 标题、正文和标签要结合近期通用热点表达方式，例如 AI 原生、效率提升、组织方法、真实案例、收藏清单、平台原生语气；没有实时联网数据时不要伪造具体榜单、日期或未经验证的数据。
+如果上一版内容里有 title/body/tags，请把它视为用户提供的原文草稿，优先保留原文事实、观点、案例和信息密度，只做平台化重写，不要另起一个无关选题。
 
 平台选择规则：
 - 小红书：笔记、种草、生活方式、清单、收藏。
@@ -195,6 +196,7 @@ ${platforms.map((platformId) => `- ${platformId}: ${platformDraftGuide[platformI
 
 Content quality requirements:
 - Stay strictly around the user's topic, intent, audience, and conversation history.
+- If previousContent contains title/body/tags, treat it as the user's source manuscript. Preserve its facts, examples, stance, and information density; adapt it into platform-native drafts instead of replacing it with a new unrelated article.
 - If the user says "字节" with company/product/growth/internet context, understand it as ByteDance, not the computer byte unit.
 - If trend/reference material is provided, use it as the factual source.
 - If no real trend/reference material is provided, do not invent current rankings, dates, breaking news, or unverified metrics.
