@@ -1,11 +1,11 @@
 # 线上 AI 代理部署说明
 
-本文档用于把 ContentBridge 部署成一个线上可访问的完整服务。部署完成后，同一个域名会同时提供前端页面和 MiniMax 代理接口，让评审员可以直接打开线上 Demo，也可以下载仓库本地运行。
+本文档用于把 ContentBridge 部署成一个线上可访问的完整服务。部署完成后，同一个域名会同时提供前端页面和 MiniMax 代理接口，让用户可以直接打开线上 Demo，也可以下载仓库本地运行。
 
 ## 目标链路
 
 ```txt
-评审员浏览器
+用户浏览器
   -> https://你的服务域名/
   -> 同域名 /api/platform-pack
   -> MiniMax Chat Completions API

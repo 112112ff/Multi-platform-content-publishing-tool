@@ -34,9 +34,9 @@ Render 免费实例冷启动可能需要约 50 秒，页面打开后可点击“
 - 测试接收端：可真实 POST 到 webhook.site 或团队自建服务，验证发布 payload。
 - 可扩展架构：新增平台可通过 `PlatformAdapter`、Agent 平台目录和发布桥扩展。
 
-## MiniMax Agent
+## AI 发布助理
 
-如果需要让评审员下载项目后直接使用团队提供的 AI 生成能力，请先部署线上代理服务，再把前端默认接口指向该代理。部署步骤见 [docs/12-online-agent-proxy.md](./docs/12-online-agent-proxy.md)。仓库只应保存代理 URL，不能保存真实 API key。
+如果希望用户下载项目后直接体验增强生成能力，可以部署线上代理服务，再把前端默认接口指向该代理。部署步骤见 [docs/12-online-agent-proxy.md](./docs/12-online-agent-proxy.md)。仓库只应保存代理 URL，不能保存真实 API key。
 
 项目已接入 MiniMax OpenAI 兼容 Chat Completions API。为了避免 API key 暴露，前端不会直接请求 MiniMax，而是调用代理服务：
 
@@ -62,11 +62,11 @@ npm run dev:agent
 npm run dev
 ```
 
-普通 `npm run dev` 默认会连接团队已部署的线上代理 `https://contentbridge.onrender.com`，因此评审在另一台电脑下载仓库后也能直接体验增强生成。若需要强制使用本机代理，可运行 `npm run dev:agent`，或在 `.env` 中设置 `VITE_AGENT_BASE_URL=http://127.0.0.1:8787`。
+普通 `npm run dev` 默认会连接团队已部署的线上代理 `https://contentbridge.onrender.com`，因此用户在另一台电脑下载仓库后也能直接体验增强生成。若需要强制使用本机代理，可运行 `npm run dev:agent`，或在 `.env` 中设置 `VITE_AGENT_BASE_URL=http://127.0.0.1:8787`。
 
-如果线上代理冷启动、未配置 key 或请求失败，页面会自动降级到本地离线规则。MiniMax 接入细节见 [docs/10-minimax-agent-integration.md](./docs/10-minimax-agent-integration.md)。
+如果线上代理冷启动、未配置 key 或请求失败，页面会自动降级到本地离线规则。AI 发布助理接入细节见 [docs/10-minimax-agent-integration.md](./docs/10-minimax-agent-integration.md)。
 
-> 安全说明：真实 API key 不应提交到 GitHub。仓库最终公开后，提交过的 key 可能被平台风控禁用，也会产生被他人调用的费用风险。评审可直接运行离线规则流程；如需体验 MiniMax 增强生成，请在本机 `.env` 填写自己的 key，或由团队在演示环境中单独配置环境变量。
+> 安全说明：真实 API key 不应提交到 GitHub。仓库最终公开后，提交过的 key 可能被平台风控禁用，也会产生被他人调用的费用风险。用户可直接运行离线规则流程；如需体验增强生成，请在本机 `.env` 填写自己的 key，或使用团队部署的线上体验环境。
 
 ## 真实发布边界
 
@@ -137,12 +137,12 @@ npm run test:run
 - [发布助理多平台发布流程](./docs/09-multi-platform-publishing-flow.md)
 - [MiniMax Agent 接入说明](./docs/10-minimax-agent-integration.md)
 - [线上 AI 代理部署说明](./docs/12-online-agent-proxy.md)
-- [评委运行与提交说明](./docs/11-judge-runbook.md)
+- [运行与体验说明](./docs/11-user-runbook.md)
 - [浏览器扩展 Publisher Bridge](./extension/README.md)
 
 ## 开发过程与 PR
 
-本项目按比赛要求通过小粒度 PR 持续提交。每个 PR 只做一件事，PR 标题用一句话说明新增或修改内容，PR 描述必须包含功能描述、实现思路和测试方式。两人组队时，应确保两名队员都使用自己的 GitHub 账号提交 commit，并在 PR 备注中写清楚具体分工。每个 PR 合并后，`main` 分支必须保持可运行，评委在任意时间查看都应能复现演示效果。
+本项目按比赛要求通过小粒度 PR 持续提交。每个 PR 只做一件事，PR 标题用一句话说明新增或修改内容，PR 描述必须包含功能描述、实现思路和测试方式。两人组队时，应确保两名队员都使用自己的 GitHub 账号提交 commit，并在 PR 备注中写清楚具体分工。每个 PR 合并后，`main` 分支必须保持可运行，用户在任意时间查看都应能复现演示效果。
 
 当前核心交付分支：
 
