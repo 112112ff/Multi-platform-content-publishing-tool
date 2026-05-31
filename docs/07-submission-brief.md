@@ -13,6 +13,7 @@
 
 ## 当前真实能力
 
+- 线上 Demo：`https://contentbridge.onrender.com`。
 - Agent 生成内容草稿。
 - 多平台差异化改写。
 - 发布体检与风险提示。
@@ -45,15 +46,17 @@ Agent 生成内容
 
 如果后续获得官方授权，只需要把 Webhook 接收端或浏览器扩展 Bridge 替换成正式 Publisher 服务。
 
-## 提交前检查
+## 提交材料状态
 
 - README 已说明依赖、原创功能和能力边界。
+- README 已给出线上体验地址。
 - Demo 视频链接需要补入 README。
 - 仓库截止后改为 Public。
 - `npm install` 可安装依赖。
 - `npm run dev` 可启动页面。
 - `npm run build` 通过。
 - `npm run test:run` 通过。
+- `npm run agent:check` 可验证线上或本地 AI 代理生成六平台发布包。
 - PR 标题需要用一句话说明新增或修改内容。
 - PR 描述需要包含功能描述、实现思路和测试方式。
 - 每个 PR 只做一件事，合并后 `main` 分支保持可运行。

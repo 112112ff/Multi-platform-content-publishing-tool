@@ -448,6 +448,6 @@ export const buildAgentPlanFromRemote = (
     },
     reply:
       remote.reply?.trim() ||
-      `发布助理已为你生成 ${platform.name} 单平台草稿。确认账号登录后即可进入一键发布。`,
+      `发布助理已为你生成 ${platform.name} 草稿。确认账号登录后即可进入一键发布。`,
   };
 };

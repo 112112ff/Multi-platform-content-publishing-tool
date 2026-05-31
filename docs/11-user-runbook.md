@@ -1,10 +1,26 @@
-# 评委运行与提交说明
+# 运行与体验说明
 
-这份文档用于解释评委从 GitHub 拉取项目后，如何稳定运行 ContentBridge，以及 MiniMax 增强生成在评审环境中的使用边界。
+这份文档用于解释用户从 GitHub 拉取项目后，如何稳定运行 ContentBridge，以及增强生成在本地和线上环境中的使用边界。
+
+## 线上快速体验
+
+```txt
+https://contentbridge.onrender.com
+```
+
+Render 免费实例冷启动可能需要约 50 秒。页面打开后可点击“填入演示原文”，再点击“立即生成发布包”或“用原文生成多平台发布包”，快速体验六平台标题、正文、标签和发布队列。
+
+线上健康检查：
+
+```txt
+https://contentbridge.onrender.com/api/agent-health
+```
+
+如果返回 `configured=true`，说明线上 AI 代理已配置并可用。
 
 ## 必须能无密钥运行
 
-比赛要求评委能复现演示效果，但评委不会拥有我们的私有 API key。仓库截止后需要公开，真实 key 不能提交到 GitHub。因此项目必须做到：
+比赛要求项目可以被公开复现，但普通用户不会拥有团队的私有 API key。仓库截止后需要公开，真实 key 不能提交到 GitHub。因此项目必须做到：
 
 - 不提交 `.env`。
 - 不把 MiniMax API key 写进前端或 README。
@@ -27,12 +43,12 @@ http://127.0.0.1:5173/
 此时页面会显示离线规则可用，用户仍可完成：
 
 ```txt
-一句话输入 -> 单平台草稿 -> 账号确认 -> 打开官方创作页并复制草稿 / 测试接收端
+填入演示原文 -> 多平台草稿 -> 编辑预览 -> 账号确认 -> 打开官方创作页并复制草稿 / 测试接收端
 ```
 
 ## 启用 MiniMax 增强生成
 
-如果评委或演示人员希望体验真实 MiniMax 生成，需要本地配置自己的 MiniMax key：
+如果用户或演示人员希望体验真实 MiniMax 生成，需要本地配置自己的 MiniMax key：
 
 ```bash
 cp .env.example .env
@@ -45,8 +61,7 @@ MINIMAX_API_KEY=自己的 MiniMax API Key
 MINIMAX_MODEL=MiniMax-M2.7
 MINIMAX_API_URL=https://api.minimaxi.com/v1/chat/completions
 MINIMAX_PROXY_PORT=8787
-VITE_AGENT_API_URL=http://127.0.0.1:8787/api/agent-plan
-VITE_PLATFORM_PACK_API_URL=http://127.0.0.1:8787/api/platform-pack
+VITE_AGENT_BASE_URL=http://127.0.0.1:8787
 ```
 
 说明：
@@ -75,18 +90,18 @@ npm run dev:agent
 - 平台可能识别到公开泄露并禁用 key。
 - PR、commit 历史很难彻底删除泄露记录。
 
-如果必须让评委体验增强生成，推荐两种安全方式：
+如果必须让用户直接体验增强生成，推荐两种安全方式：
 
 1. 在 Demo 视频中展示已配置 key 的演示环境，并在 README 说明本地配置方式。
 2. 临时部署一个受限的代理服务，把 key 放在服务器环境变量中，前端只配置代理 URL，不把 key 发到浏览器或仓库。
 
-比赛评审的可复现底线仍然由离线规则保证：评委不配置 key 也能完整跑通主流程。
+项目的可复现底线仍然由离线规则保证：用户不配置 key 也能完整跑通主流程。
 
 ## Demo 推荐策略
 
 Demo 视频中建议展示两段：
 
-1. 无 key 情况下的稳定主流程，证明评委拉代码后可直接跑通。
+1. 无 key 情况下的稳定主流程，证明用户拉代码后可直接跑通。
 2. 配置 key 后的 MiniMax 增强生成效果，证明 AI 接入真实存在。
 
 这样既满足比赛可复现要求，也能展示创新性。

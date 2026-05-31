@@ -29,6 +29,7 @@ type ChatMessage = {
 };
 
 type FlowStep = "idle" | "account" | "publish" | "done";
+type InputMode = "draft" | "brief";
 
 const defaultPlatformIds = platformCatalog.map((platform) => platform.id);
 
@@ -53,6 +54,19 @@ const quickPrompts = [
   "写一篇公众号长文章，主题是字节跳动公司的产品增长方法",
   "做一个抖音口播脚本，讲多平台内容发布怎么省时间",
 ];
+
+const demoSourceText = [
+  "AI 工具如何真正提升学习效率",
+  "",
+  "我最近发现，真正有用的 AI 工具不是替你偷懒，而是帮你把学习流程拆清楚。",
+  "过去我复习一门课时，经常直接开始刷资料，结果越看越乱。后来我把流程拆成三步：先让 AI 帮我整理知识框架，再围绕薄弱点生成练习题，最后把错题交给 AI 做复盘总结。",
+  "",
+  "这个方法最适合三类人：准备考试的学生、需要快速学新技能的职场新人、以及要长期输出内容的创作者。它的关键不是让 AI 替你完成答案，而是让它帮你把问题变清楚、把练习变具体、把反馈变及时。",
+  "",
+  "我的真实建议是：不要一上来就问 AI 给我答案，而是问它三个问题：我现在应该先学什么？我哪里可能理解错？我下一步该怎么练？",
+  "",
+  "#AI工具 #学习效率 #学习方法 #自我提升",
+].join("\n");
 
 const lengthLabels: Record<AgentPreferences["length"], string> = {
   short: "短内容",
@@ -176,6 +190,7 @@ function App() {
     ),
   ]);
   const [agentInput, setAgentInput] = useState("");
+  const [inputMode, setInputMode] = useState<InputMode>("draft");
   const [sourceText, setSourceText] = useState("");
   const [flowStep, setFlowStep] = useState<FlowStep>("idle");
   const [activePlatformId, setActivePlatformId] =
@@ -311,6 +326,31 @@ function App() {
 
   const pushMessages = (...newMessages: ChatMessage[]) => {
     setMessages((current) => [...current, ...newMessages]);
+  };
+
+  const fillDemoSource = () => {
+    setInputMode("draft");
+    setSourceText(demoSourceText);
+    setPublishBrief({
+      topic: "AI 工具如何真正提升学习效率",
+      intent: "把一篇已有经验稿改写成适合多平台分发的实用内容",
+      audience: "学生、职场新人和内容创作者",
+      trendSignals: "AI 原生应用\n效率工具\n学习方法\n真实经验复盘",
+    });
+    setPreferences({
+      length: "medium",
+      style: "practical",
+      hotness: "trend",
+    });
+    setFlowStep("idle");
+    setPublishResults([]);
+    setPreviewOverrides({});
+    pushMessages(
+      createMessage(
+        "assistant",
+        "已填入一份演示原文。你可以直接点击生成发布包，查看六个平台的标题、正文和标签如何被分别改写。",
+      ),
+    );
   };
 
   const buildConfirmedPrompt = (
@@ -541,6 +581,15 @@ function App() {
       adapted: previewOverrides[platformId] ?? preview.adapted,
     };
   };
+  const generatedDraftCount = Object.keys(previewOverrides).length || previews.length;
+  const generatedTagCount = previews.reduce((total, preview) => {
+    const displayPreview = getPreviewForPlatform(preview);
+    return total + displayPreview.adapted.tags.length;
+  }, 0);
+  const readyPlatformCount = previews.filter((preview) => {
+    const displayPreview = getPreviewForPlatform(preview);
+    return displayPreview.validation.canPublish;
+  }).length;
 
   const openPlatformCreatorPage = async (): Promise<DeliveryResult | null> => {
     if (!cleanPreview || !activeAccount) {
@@ -688,316 +737,334 @@ function App() {
           <div>
             <span>ContentBridge</span>
             <h1>输入一份内容，生成全平台发布包</h1>
+            <p>面向创作者的多平台内容分发 MVP：原文识别、平台化改写、可编辑预览、发布队列和线上增强全部跑通。</p>
           </div>
-          <strong>{cleanPreview ? `${previews.length} 个平台已适配` : "多平台发布助理"}</strong>
+          <div className="brand-actions">
+            <strong>{cleanPreview ? `${previews.length} 个平台已适配` : "线上 Demo 可用"}</strong>
+            <button type="button" onClick={fillDemoSource}>
+              填入演示原文
+            </button>
+          </div>
         </div>
 
-        <div className="agent-layout">
-          <aside className="agent-conversation">
-            <div className="agent-topbar">
-              <div className={`agent-runtime-status ${agentStatus.mode}`}>
-                <b>
+        <div className="proof-strip" aria-label="核心能力证明">
+          <span>6 平台原生改写</span>
+          <span>标题 / 正文 / 标签可编辑</span>
+          <span>线上增强 + 离线兜底</span>
+          <span>官方创作页 / Webhook 验证</span>
+        </div>
+
+        {!cleanPreview ? (
+          <div className="home-page-layout">
+            <div className="home-priority-grid">
+              <article className="home-guide-card">
+                <span>使用流程</span>
+                <h2>先给内容，再生成六个平台发布包</h2>
+                <p>用户可以粘贴已有草稿，也可以只输入主题和核心表达。系统会统一进入平台改写、预览编辑和发布队列。</p>
+                <ol>
+                  <li>选择输入模式</li>
+                  <li>补充发布偏好</li>
+                  <li>生成多平台预览</li>
+                </ol>
+              </article>
+
+              <article className={`runtime-card ${agentStatus.mode}`}>
+                <span>当前能力</span>
+                <strong>
                   {agentStatus.mode === "connected"
-                    ? "发布助理已增强"
+                    ? "线上增强已就绪"
                     : agentStatus.mode === "key-missing"
                       ? "离线规则可用"
                       : "离线规则模式"}
-                </b>
+                </strong>
                 <p>{agentStatus.message}</p>
-              </div>
-
-              <div className="agent-status">
-                <span className={stepState("idle")}>输入内容</span>
-                <span className={stepState("publish")}>平台适配</span>
-                <span className={stepState("done")}>发布队列</span>
-              </div>
+                <div className="agent-status">
+                  <span className={stepState("idle")}>输入内容</span>
+                  <span className={stepState("publish")}>平台适配</span>
+                  <span className={stepState("done")}>发布队列</span>
+                </div>
+              </article>
             </div>
 
-            <div className="source-draft-panel" aria-label="原文粘贴区">
-              <div className="section-heading">
-                <small>1</small>
+            <section className="mode-workspace-card" aria-label="内容输入">
+              <div className="mode-workspace-heading">
                 <div>
-                  <span>原文 / 已有草稿</span>
-                  <b>把用户已有内容粘贴进来，系统会先识别标题、正文和标签，再做平台化改写</b>
+                  <span>内容入口</span>
+                  <h2>{inputMode === "draft" ? "已有草稿模式" : "主题核心表达模式"}</h2>
+                  <p>
+                    {inputMode === "draft"
+                      ? "适合用户已经有文章、笔记、产品介绍或活动文案，只需要多平台改写。"
+                      : "适合用户只有选题方向，需要先补齐主题、表达、受众和素材。"}
+                  </p>
                 </div>
-              </div>
-              <textarea
-                value={sourceText}
-                onChange={(event) => setSourceText(event.target.value)}
-                placeholder={[
-                  "可直接粘贴公众号文章、知乎回答、产品介绍、活动文案或带 #标签 的草稿。",
-                  "例如：第一行写标题，正文写观点和案例，最后一行写 #标签。",
-                ].join("\n")}
-                rows={5}
-              />
-              <div className="source-draft-meta">
-                <span>{hasSourceDraft ? `已识别：${sourceDraft.title || "未命名草稿"}` : "等待粘贴原文"}</span>
-                <span>{hasSourceDraft ? `${sourceDraft.body.length} 字正文` : "正文会用于右侧预览"}</span>
-                <span>{hasSourceDraft ? `${sourceDraft.tags.length} 个标签` : "支持 #标签 或 标签：格式"}</span>
-              </div>
-              <button
-                type="button"
-                disabled={isAgentThinking || !hasSourceDraft}
-                onClick={() =>
-                  void applyAgentPrompt(
-                    "请基于左侧原文生成多平台发布包，保留核心观点，分别优化标题、正文和标签",
-                  )
-                }
-              >
-                用原文生成多平台发布包
-              </button>
-            </div>
-
-            <div className="brief-panel" aria-label="发布需求确认">
-              <div className="section-heading">
-                <small>2</small>
-                <div>
-                  <span>发布 Brief</span>
-                  <b>先确认主题、表达和受众，再生成多平台版本</b>
-                </div>
-              </div>
-              <label>
-                主题
-                <input
-                  value={publishBrief.topic}
-                  onChange={(event) =>
-                    setPublishBrief((current) => ({ ...current, topic: event.target.value }))
-                  }
-                  placeholder="例如：字节跳动公司的产品增长方法"
-                />
-              </label>
-              <label>
-                核心表达
-                <textarea
-                  value={publishBrief.intent}
-                  onChange={(event) =>
-                    setPublishBrief((current) => ({ ...current, intent: event.target.value }))
-                  }
-                  placeholder="例如：讲清楚它为什么能持续做出高频产品，并总结普通团队能借鉴的方法"
-                  rows={2}
-                />
-              </label>
-              <label>
-                目标读者
-                <input
-                  value={publishBrief.audience}
-                  onChange={(event) =>
-                    setPublishBrief((current) => ({ ...current, audience: event.target.value }))
-                  }
-                  placeholder="例如：创作者、产品经理、互联网从业者"
-                />
-              </label>
-              <label>
-                热点素材或参考链接
-                <textarea
-                  value={publishBrief.trendSignals}
-                  onChange={(event) =>
-                    setPublishBrief((current) => ({
-                      ...current,
-                      trendSignals: event.target.value,
-                    }))
-                  }
-                  placeholder="可粘贴热榜词、爆文标题、参考链接；未填写时只做平台化选题角度，不伪造实时热点"
-                  rows={2}
-                />
-              </label>
-              <div className="platform-chip-row">
-                {platformCatalog.map((platform) => (
-                  <span key={platform.id}>{platform.name}</span>
-                ))}
-              </div>
-            </div>
-
-            <div className="preference-panel" aria-label="发布偏好">
-              <div className="section-heading compact">
-                <small>3</small>
-                <div>
-                  <span>发布偏好</span>
-                  <b>选择长度、语气和热点使用方式</b>
-                </div>
-              </div>
-              <label>
-                长度
-                <select
-                  value={preferences.length}
-                  onChange={(event) =>
-                    setPreferences((current) => ({
-                      ...current,
-                      length: event.target.value as AgentPreferences["length"],
-                    }))
-                  }
-                >
-                  {Object.entries(lengthLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                风格
-                <select
-                  value={preferences.style}
-                  onChange={(event) =>
-                    setPreferences((current) => ({
-                      ...current,
-                      style: event.target.value as AgentPreferences["style"],
-                    }))
-                  }
-                >
-                  {Object.entries(styleLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                选题
-                <select
-                  value={preferences.hotness}
-                  onChange={(event) =>
-                    setPreferences((current) => ({
-                      ...current,
-                      hotness: event.target.value as AgentPreferences["hotness"],
-                    }))
-                  }
-                >
-                  {Object.entries(hotnessLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="button"
-                disabled={isAgentThinking}
-                onClick={() => void applyAgentPrompt("确认当前发布 Brief，并生成多平台发布包")}
-              >
-                确认 Brief 并生成发布包
-              </button>
-            </div>
-
-            <form className="agent-input-card" onSubmit={submitPrompt}>
-              <div className="section-heading compact">
-                <small>4</small>
-                <div>
-                  <span>补充要求</span>
-                  <b>告诉发布助理要更口语、更专业，或指定某个平台重点优化</b>
-                </div>
-              </div>
-              <textarea
-                value={agentInput}
-                onChange={(event) => setAgentInput(event.target.value)}
-                placeholder="例如：保留原文观点，语气更像真实经验分享；小红书更轻松，知乎更专业"
-                rows={3}
-              />
-              <div className="quick-prompt-row" aria-label="示例补充要求">
-                {quickPrompts.map((prompt) => (
+                <div className="mode-switch" role="tablist" aria-label="输入模式">
                   <button
                     type="button"
-                    key={prompt}
-                    disabled={isAgentThinking}
-                    onClick={() => void applyAgentPrompt(prompt)}
+                    className={inputMode === "draft" ? "active" : ""}
+                    onClick={() => setInputMode("draft")}
                   >
-                    {prompt}
+                    已有草稿
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    className={inputMode === "brief" ? "active" : ""}
+                    onClick={() => setInputMode("brief")}
+                  >
+                    主题核心表达
+                  </button>
+                </div>
               </div>
-              <button type="submit" disabled={isAgentThinking}>
-                {isAgentThinking ? "生成中..." : "补充需求并更新 Brief"}
-              </button>
-            </form>
 
-            <details className="assistant-log-card">
-              <summary>
-                <div className="section-heading compact">
-                  <small>记录</small>
-                  <div>
-                    <span>对话记录</span>
-                    <b>只保留生成反馈和你的补充要求，避免干扰主流程</b>
+              {inputMode === "draft" ? (
+                <div className="source-draft-panel home-mode-panel" aria-label="原文粘贴区">
+                  <div className="section-heading">
+                    <small>1</small>
+                    <div>
+                      <span>原文 / 已有草稿</span>
+                      <b>把用户已有内容粘贴进来，系统会先识别标题、正文和标签，再做平台化改写</b>
+                    </div>
+                  </div>
+                  <textarea
+                    value={sourceText}
+                    onChange={(event) => setSourceText(event.target.value)}
+                    placeholder={[
+                      "可直接粘贴公众号文章、知乎回答、产品介绍、活动文案或带 #标签 的草稿。",
+                      "例如：第一行写标题，正文写观点和案例，最后一行写 #标签。",
+                    ].join("\n")}
+                    rows={7}
+                  />
+                  <div className="source-draft-meta">
+                    <span>{hasSourceDraft ? `已识别：${sourceDraft.title || "未命名草稿"}` : "等待粘贴原文"}</span>
+                    <span>{hasSourceDraft ? `${sourceDraft.body.length} 字正文` : "正文会用于预览页"}</span>
+                    <span>{hasSourceDraft ? `${sourceDraft.tags.length} 个标签` : "支持 #标签 或 标签：格式"}</span>
                   </div>
                 </div>
-              </summary>
-              <div className="chat-stream" aria-live="polite">
-                {messages.map((message) => (
-                  <article className={`chat-bubble ${message.role}`} key={message.id}>
-                    <b>{message.role === "assistant" ? "发布助理" : "你"}</b>
-                    <p>{message.text}</p>
-                  </article>
-                ))}
-              </div>
-            </details>
-          </aside>
-
-          <section className="publish-flow-panel" aria-label="多平台发布包">
-            {!cleanPreview ? (
-              <div className="empty-product-guide">
-                <header className="empty-product-hero">
-                  <span>多平台发布工作台</span>
-                  <h2>左侧贴原文，右侧生成六个平台版本</h2>
-                  <p>
-                    这里会承接原文识别、平台改写、发布体检和队列状态。当前先展示工作流和平台入口，生成后会替换成可编辑预览。
-                  </p>
-                </header>
-
-                <div className="home-brief-grid">
-                  <article className="source-preview-card">
-                    <span>当前原文识别</span>
-                    <strong>{hasSourceDraft ? sourceDraft.title || "未命名草稿" : "等待粘贴原文"}</strong>
-                    <p>
-                      {hasSourceDraft
-                        ? sourceDraft.body.slice(0, 180)
-                        : "在左侧粘贴已有文章、产品介绍、活动文案或带标签草稿后，这里会显示识别结果。"}
-                    </p>
+              ) : (
+                <div className="brief-panel home-mode-panel" aria-label="发布需求确认">
+                  <div className="section-heading">
+                    <small>1</small>
                     <div>
-                      {(hasSourceDraft ? sourceDraft.tags : ["标题", "正文", "标签"]).map((tag) => (
-                        <em key={tag}>{tag}</em>
-                      ))}
+                      <span>发布 Brief</span>
+                      <b>先确认主题、表达和受众，再生成多平台版本</b>
                     </div>
-                  </article>
-
-                  <article className="home-flow-card">
-                    <span>生成后会出现</span>
-                    <ol>
-                      <li>六个平台标题、正文、标签</li>
-                      <li>当前平台发布体检和风险提醒</li>
-                      <li>一键生成发布队列</li>
-                      <li>打开官方创作页或测试接收端</li>
-                    </ol>
-                  </article>
+                  </div>
+                  <label>
+                    主题
+                    <input
+                      value={publishBrief.topic}
+                      onChange={(event) =>
+                        setPublishBrief((current) => ({ ...current, topic: event.target.value }))
+                      }
+                      placeholder="例如：字节跳动公司的产品增长方法"
+                    />
+                  </label>
+                  <label>
+                    核心表达
+                    <textarea
+                      value={publishBrief.intent}
+                      onChange={(event) =>
+                        setPublishBrief((current) => ({ ...current, intent: event.target.value }))
+                      }
+                      placeholder="例如：讲清楚它为什么能持续做出高频产品，并总结普通团队能借鉴的方法"
+                      rows={3}
+                    />
+                  </label>
+                  <label>
+                    目标读者
+                    <input
+                      value={publishBrief.audience}
+                      onChange={(event) =>
+                        setPublishBrief((current) => ({ ...current, audience: event.target.value }))
+                      }
+                      placeholder="例如：创作者、产品经理、互联网从业者"
+                    />
+                  </label>
+                  <label>
+                    热点素材或参考链接
+                    <textarea
+                      value={publishBrief.trendSignals}
+                      onChange={(event) =>
+                        setPublishBrief((current) => ({
+                          ...current,
+                          trendSignals: event.target.value,
+                        }))
+                      }
+                      placeholder="可粘贴热榜词、爆文标题、参考链接；未填写时只做平台化选题角度，不伪造实时热点"
+                      rows={3}
+                    />
+                  </label>
+                  <div className="platform-chip-row">
+                    {platformCatalog.map((platform) => (
+                      <span key={platform.id}>{platform.name}</span>
+                    ))}
+                  </div>
                 </div>
+              )}
 
-                <div className="platform-starter-grid">
-                  {platformCatalog.map((platform) => (
+              <div className="preference-panel home-preference-panel" aria-label="发布偏好">
+                <div className="section-heading compact">
+                  <small>2</small>
+                  <div>
+                    <span>发布偏好</span>
+                    <b>两个输入模式共用这组偏好</b>
+                  </div>
+                </div>
+                <label>
+                  长度
+                  <select
+                    value={preferences.length}
+                    onChange={(event) =>
+                      setPreferences((current) => ({
+                        ...current,
+                        length: event.target.value as AgentPreferences["length"],
+                      }))
+                    }
+                  >
+                    {Object.entries(lengthLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  风格
+                  <select
+                    value={preferences.style}
+                    onChange={(event) =>
+                      setPreferences((current) => ({
+                        ...current,
+                        style: event.target.value as AgentPreferences["style"],
+                      }))
+                    }
+                  >
+                    {Object.entries(styleLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  选题
+                  <select
+                    value={preferences.hotness}
+                    onChange={(event) =>
+                      setPreferences((current) => ({
+                        ...current,
+                        hotness: event.target.value as AgentPreferences["hotness"],
+                      }))
+                    }
+                  >
+                    {Object.entries(hotnessLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="home-action-row">
+                <button type="button" onClick={fillDemoSource}>
+                  填入演示原文
+                </button>
+                <button
+                  type="button"
+                  className="primary-home-action"
+                  disabled={isAgentThinking || (inputMode === "draft" && !hasSourceDraft)}
+                  onClick={() =>
+                    void applyAgentPrompt(
+                      inputMode === "draft"
+                        ? "请基于左侧原文生成多平台发布包，保留核心观点，分别优化标题、正文和标签"
+                        : "确认当前发布 Brief，并生成多平台发布包",
+                    )
+                  }
+                >
+                  {isAgentThinking ? "正在生成..." : "生成多平台发布包"}
+                </button>
+              </div>
+            </section>
+
+            <div className="home-preview-teaser">
+              <article>
+                <b>预览页会展示</b>
+                <span>六个平台标题、正文、标签和发布体检</span>
+              </article>
+              <article>
+                <b>发布页会完成</b>
+                <span>编辑草稿、生成队列、打开官方创作页</span>
+              </article>
+            </div>
+          </div>
+        ) : (
+          <div className="preview-page-layout">
+            <div className="preview-top-grid">
+              <form className="agent-input-card preview-requirement-card" onSubmit={submitPrompt}>
+                <div className="section-heading compact">
+                  <small>补充</small>
+                  <div>
+                    <span>预览页补充要求</span>
+                    <b>需要更口语、更专业，或指定某个平台重点优化时，在这里继续调整</b>
+                  </div>
+                </div>
+                <textarea
+                  value={agentInput}
+                  onChange={(event) => setAgentInput(event.target.value)}
+                  placeholder="例如：保留原文观点，小红书更轻松，知乎更专业，微博更适合转发讨论"
+                  rows={3}
+                />
+                <div className="quick-prompt-row" aria-label="示例补充要求">
+                  {quickPrompts.map((prompt) => (
                     <button
                       type="button"
-                      key={platform.id}
+                      key={prompt}
                       disabled={isAgentThinking}
-                      onClick={() =>
-                        void applyAgentPrompt(`帮我生成${platform.name}内容，主题是 AI 工具提升学习效率`)
-                      }
+                      onClick={() => void applyAgentPrompt(prompt)}
                     >
-                      <b>{platform.name}</b>
-                      <span>{platform.promise}</span>
+                      {prompt}
                     </button>
                   ))}
                 </div>
-              </div>
-            ) : (
-              <>
-                <header className="single-platform-header">
-                  <div>
-                    <span>多平台发布包</span>
-                    <h2>{publishBrief.topic || content.title}</h2>
-                    <p>{publishBrief.intent || "同一份内容已按平台语境自动改写，可逐个平台编辑和发布。"}</p>
-                  </div>
-                  <button type="button" onClick={publishAllDrafts}>
-                    {isPublishing ? "生成中..." : "一键生成发布队列"}
-                  </button>
-                </header>
+                <button type="submit" disabled={isAgentThinking}>
+                  {isAgentThinking ? "更新中..." : "更新发布包"}
+                </button>
+              </form>
 
+              <article className="brief-summary-card">
+                <span>发布 Brief 总览</span>
+                <h2>{publishBrief.topic || content.title}</h2>
+                <p>{publishBrief.intent || "同一份内容已按平台语境自动改写，可逐个平台编辑和发布。"}</p>
+                <div>
+                  <em>{publishBrief.audience || "目标读者待补充"}</em>
+                  <em>{lengthLabels[preferences.length]}</em>
+                  <em>{styleLabels[preferences.style]}</em>
+                  <em>{hotnessLabels[preferences.hotness]}</em>
+                </div>
+              </article>
+            </div>
+
+            <div className="result-metric-grid" aria-label="发布包指标">
+              <article>
+                <span>{generatedDraftCount}</span>
+                <b>平台版本</b>
+              </article>
+              <article>
+                <span>{generatedTagCount}</span>
+                <b>标签建议</b>
+              </article>
+              <article>
+                <span>{readyPlatformCount}</span>
+                <b>体检通过</b>
+              </article>
+              <article>
+                <span>{publishResults.length || "待"}</span>
+                <b>发布队列</b>
+              </article>
+            </div>
+
+            <div className="preview-main-grid">
+              <section className="preview-left-stack" aria-label="平台预览和队列">
                 <div className="platform-package-grid">
                   {previews.map((preview) => {
                     const platform = getPlatformById(preview.adapted.platformId);
@@ -1056,7 +1123,9 @@ function App() {
                     ))}
                   </ul>
                 </div>
+              </section>
 
+              <section className="preview-right-stack" aria-label="编辑和发布">
                 <div className="draft-editor-card">
                   <div className="draft-editor-heading">
                     <div>
@@ -1099,10 +1168,38 @@ function App() {
                 </div>
 
                 <div className="publish-action-card">
-                  <div className={`score-card ${scoreTone(cleanPreview.validation.score)}`}>
-                    <span>{cleanPreview.validation.score}</span>
-                    <p>{cleanPreview.validation.canPublish ? "发布体检通过" : "需要修改后再发布"}</p>
+                  <div className="publish-action-heading">
+                    <div>
+                      <span>发布前确认</span>
+                      <h3>{activePlatform.name} 发布舱</h3>
+                      <p>
+                        已准备好标题、正文和标签。点击主按钮后会打开官方创作页，并把当前草稿加入发布队列。
+                      </p>
+                    </div>
+                    <div className={`score-card ${scoreTone(cleanPreview.validation.score)}`}>
+                      <span>{cleanPreview.validation.score}</span>
+                      <p>{cleanPreview.validation.canPublish ? "体检通过" : "需处理"}</p>
+                    </div>
                   </div>
+
+                  <div className="publish-ritual-rail" aria-label="发布流程">
+                    <article className="done">
+                      <b>1</b>
+                      <span>平台草稿</span>
+                      <small>已生成可编辑内容</small>
+                    </article>
+                    <article className={accountConnected ? "done" : "current"}>
+                      <b>2</b>
+                      <span>账号确认</span>
+                      <small>{accountConnected ? "已确认登录状态" : "确认后继续发布"}</small>
+                    </article>
+                    <article className={cleanPreview.validation.canPublish ? "current" : ""}>
+                      <b>3</b>
+                      <span>送往创作页</span>
+                      <small>复制草稿并打开官方页面</small>
+                    </article>
+                  </div>
+
                   {displayIssues.length ? (
                     <ul className="simple-issue-list">
                       {displayIssues.map((issue) => (
@@ -1122,8 +1219,11 @@ function App() {
                     disabled={isPublishing || !cleanPreview.validation.canPublish}
                     onClick={publishToPlatformDraft}
                   >
-                    {isPublishing ? "发布中..." : `一键发布到 ${activePlatform.name} 草稿`}
+                    {isPublishing ? "正在送往创作页..." : `确认并发布到 ${activePlatform.name} 创作页`}
                   </button>
+                  <p className="publish-final-note">
+                    为了符合真实平台规则，最终“发布”由你在官方创作页手动确认；本系统负责生成、校验、复制和打开发布入口。
+                  </p>
                   <button
                     type="button"
                     className="ghost-action"
@@ -1173,11 +1273,18 @@ function App() {
                     </div>
                   ) : null}
                 </div>
-              </>
-            )}
-          </section>
-        </div>
+              </section>
+            </div>
+          </div>
+        )}
       </section>
+
+      {isAgentThinking ? (
+        <div className="generation-status" role="status" aria-live="polite">
+          <strong>正在生成多平台发布包</strong>
+          <span>发布助理会优先调用线上增强能力；若服务不可用，会自动切换离线规则。</span>
+        </div>
+      ) : null}
 
       {accountModalOpen ? (
         <div className="account-modal-backdrop" onClick={() => setAccountModalOpen(false)}>

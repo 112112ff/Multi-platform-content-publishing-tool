@@ -1,6 +1,6 @@
-# MiniMax Agent 接入说明
+# MiniMax 发布助理接入说明
 
-本项目已把 MiniMax 接入到左侧 Agent 主流程。用户输入一句话后，前端会调用本地 Agent 代理服务，代理再请求 MiniMax Chat Completions API，并返回单平台发布计划。
+本项目已把 MiniMax 接入到左侧发布助理主流程。用户输入一句话或粘贴原文后，前端会调用本地代理服务，代理再请求 MiniMax Chat Completions API，并优先返回六平台发布包。
 
 ## 为什么需要本地代理
 
@@ -10,15 +10,15 @@ MiniMax API key 不能写进前端代码，也不能提交到 GitHub。前端页
 
 ```txt
 Browser UI
-  -> http://127.0.0.1:8787/api/platform-pack
-  -> http://127.0.0.1:8787/api/agent-plan
+  -> https://contentbridge.onrender.com/api/platform-pack
+  -> https://contentbridge.onrender.com/api/agent-plan
   -> scripts/minimax-proxy.mjs
-  -> https://api.minimax.io/v1/chat/completions
+  -> https://api.minimaxi.com/v1/chat/completions
   -> MiniMax JSON draft pack / plan
   -> Browser UI
 ```
 
-如果代理没有启动，或本地没有配置 `MINIMAX_API_KEY`，前端会自动降级到本地 Agent 规则，项目仍然可以演示。
+普通 `npm run dev` 会默认使用团队的 Render 线上代理，方便用户在另一台电脑下载后直接体验。若代理冷启动、不可用或 key 未配置，前端会自动降级到本地离线规则，项目仍然可以演示。
 
 ## 本地启动方式
 
@@ -33,10 +33,9 @@ cp .env.example .env
 ```env
 MINIMAX_API_KEY=你的 MiniMax API Key
 MINIMAX_MODEL=MiniMax-M2.7
-MINIMAX_API_URL=https://api.minimax.io/v1/chat/completions
+MINIMAX_API_URL=https://api.minimaxi.com/v1/chat/completions
 MINIMAX_PROXY_PORT=8787
-VITE_AGENT_API_URL=http://127.0.0.1:8787/api/agent-plan
-VITE_PLATFORM_PACK_API_URL=http://127.0.0.1:8787/api/platform-pack
+VITE_AGENT_BASE_URL=http://127.0.0.1:8787
 ```
 
 3. 启动带 Agent 代理的开发环境：
@@ -52,7 +51,7 @@ npm run agent:proxy
 npm run dev
 ```
 
-## Agent 返回格式
+## 返回格式
 
 MiniMax 被要求只返回 JSON：
 
@@ -66,7 +65,7 @@ MiniMax 被要求只返回 JSON：
 }
 ```
 
-新增的 `/api/platform-pack` 会优先返回多平台成稿包，前端用它覆盖各平台预览内容：
+`/api/platform-pack` 会优先返回多平台成稿包，前端用它覆盖各平台预览内容：
 ```json
 {
   "reply": "多平台发布包已生成。",
@@ -83,7 +82,7 @@ MiniMax 被要求只返回 JSON：
 }
 ```
 
-前端会校验 `platformId`，并合并成本项目统一的 `AgentPlan` 或多平台预览内容。不支持的平台会回退到本地 Agent。
+前端会校验 `platformId`，并合并成本项目统一的发布计划或多平台预览内容。不支持的平台会回退到本地离线规则。
 
 ## 安全要求
 

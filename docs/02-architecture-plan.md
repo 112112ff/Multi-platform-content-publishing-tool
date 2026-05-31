@@ -4,7 +4,7 @@
 
 本项目的核心架构目标是让“新增平台”变得简单。主流程不应该关心公众号、知乎、B站、小红书的具体细节，而是通过统一的适配器接口调用每个平台能力。
 
-## 推荐目录结构
+## 当前目录结构
 
 ```txt
 src/
@@ -15,22 +15,25 @@ src/
     zhihu.ts
     bilibili.ts
     xiaohongshu.ts
+    weibo.ts
+    douyin.ts
+    customAdapter.ts
   components/
-    ContentEditor.tsx
-    PlatformSelector.tsx
-    PlatformPreview.tsx
-    HealthScore.tsx
-    PublishPanel.tsx
-    PublishHistory.tsx
+    当前主界面已收敛到 App.tsx，避免演示期出现多套未使用组件
   data/
     sampleContent.ts
-    platformProfiles.ts
+  integrations/
+    matrixOperationEngine.ts
   services/
     adaptContent.ts
-    publishSimulator.ts
-    storage.ts
+    agentPlanner.ts
+    extensionBridge.ts
+    minimaxAgent.ts
+    realDelivery.ts
+    sourceContent.ts
   types/
     content.ts
+    delivery.ts
     platform.ts
   App.tsx
   main.tsx
@@ -150,12 +153,16 @@ import { wechatAdapter } from "./wechat";
 import { zhihuAdapter } from "./zhihu";
 import { bilibiliAdapter } from "./bilibili";
 import { xiaohongshuAdapter } from "./xiaohongshu";
+import { weiboAdapter } from "./weibo";
+import { douyinAdapter } from "./douyin";
 
 export const platformAdapters = [
   wechatAdapter,
   zhihuAdapter,
   bilibiliAdapter,
   xiaohongshuAdapter,
+  weiboAdapter,
+  douyinAdapter,
 ];
 ```
 

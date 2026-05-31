@@ -60,9 +60,30 @@ export type GeneratedPlatformPack = {
   model?: string;
 };
 
-const defaultAgentApiUrl = "http://127.0.0.1:8787/api/agent-plan";
-const defaultPlatformPackApiUrl = "http://127.0.0.1:8787/api/platform-pack";
-const defaultAgentHealthUrl = "http://127.0.0.1:8787/api/agent-health";
+const localAgentOrigin = "http://127.0.0.1:8787";
+const onlineAgentOrigin = "https://contentbridge.onrender.com";
+
+const resolveDefaultAgentEndpoint = (path: string) => {
+  const configuredBaseUrl = import.meta.env.VITE_AGENT_BASE_URL?.trim();
+
+  if (configuredBaseUrl) {
+    return `${configuredBaseUrl.replace(/\/+$/, "")}${path}`;
+  }
+
+  if (typeof window === "undefined") {
+    return `${localAgentOrigin}${path}`;
+  }
+
+  const isLocalDev =
+    ["127.0.0.1", "localhost"].includes(window.location.hostname) &&
+    window.location.port !== "8787";
+
+  return `${isLocalDev ? onlineAgentOrigin : window.location.origin}${path}`;
+};
+
+const defaultAgentApiUrl = resolveDefaultAgentEndpoint("/api/agent-plan");
+const defaultPlatformPackApiUrl = resolveDefaultAgentEndpoint("/api/platform-pack");
+const defaultAgentHealthUrl = resolveDefaultAgentEndpoint("/api/agent-health");
 
 export type MiniMaxAgentStatus = {
   mode: "connected" | "proxy-missing" | "key-missing";
