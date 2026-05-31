@@ -5,7 +5,7 @@ ContentBridge 是一个面向创作者的多平台内容发布工具 MVP，对�
 ## Demo 视频
 
 ```txt
-待补充
+提交前请替换为可播放的 B 站、网盘或公开视频链接。
 ```
 
 线上体验地址：
@@ -129,7 +129,7 @@ npm run test:run
 - [项目总览](./docs/00-project-overview.md)
 - [产品与功能规划](./docs/01-product-plan.md)
 - [架构设计](./docs/02-architecture-plan.md)
-- [团队协作与分工](./docs/03-team-collaboration.md)
+- [开发协作与 PR 规范](./docs/03-team-collaboration.md)
 - [提交规则与验收清单](./docs/04-delivery-rules-checklist.md)
 - [评审策略与得分点](./docs/05-review-strategy.md)
 - [Demo 录制脚本](./docs/06-demo-script.md)
@@ -140,9 +140,17 @@ npm run test:run
 - [评委运行与提交说明](./docs/11-judge-runbook.md)
 - [浏览器扩展 Publisher Bridge](./extension/README.md)
 
-## 团队协作
+## 开发过程与 PR
 
 本项目按比赛要求通过小粒度 PR 持续提交。每个 PR 只做一件事，PR 标题用一句话说明新增或修改内容，PR 描述必须包含功能描述、实现思路和测试方式。两人组队时，应确保两名队员都使用自己的 GitHub 账号提交 commit，并在 PR 备注中写清楚具体分工。每个 PR 合并后，`main` 分支必须保持可运行，评委在任意时间查看都应能复现演示效果。
+
+当前核心交付分支：
+
+```txt
+codex/final-product-scope-polish
+```
+
+最终提交时请确认该分支已通过 PR 合并到 `main`，并且 `main` 可以直接 `npm install`、`npm run dev`、`npm run build`、`npm run test:run`。
 
 ## 比赛周期
 
