@@ -249,9 +249,9 @@ const styleLine = (preferences: AgentPreferences) => {
 
 const hotTopicLines = (topic: string, platform: PlatformCatalogItem, preferences: AgentPreferences) => {
   const base = [
-    `${topic} 的最新讨论点：效率提升不是替代人，而是把重复工作交给工具。`,
+    `${topic} 的平台化选题角度：先讲真实场景，再给可执行方法。`,
     `${platform.name} 用户更关注可保存、可复用、可验证的经验。`,
-    "近期内容趋势更偏向真实案例、步骤清单和明确收益。",
+    "没有外部热榜素材时，建议采用真实案例、步骤清单和明确收益来增强可信度。",
   ];
 
   if (/字节跳动|ByteDance/i.test(topic)) {

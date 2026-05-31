@@ -2203,6 +2203,73 @@ p {
   padding: 1rem;
 }
 
+.publish-queue-card {
+  background: #f8fbfb;
+  border: 1px solid #d7e1e4;
+  border-radius: 14px;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.publish-queue-card > div:first-child {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.publish-queue-card span {
+  color: #4f6f75;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.publish-queue-card strong {
+  color: #17383f;
+}
+
+.queue-lanes {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.queue-lanes article {
+  background: #ffffff;
+  border: 1px solid #dfe8ea;
+  border-radius: 10px;
+  display: grid;
+  gap: 0.32rem;
+  min-width: 0;
+  padding: 0.7rem;
+}
+
+.queue-lanes article.done {
+  background: #e8f6ef;
+  border-color: #a8d8be;
+}
+
+.queue-lanes b {
+  color: #172026;
+}
+
+.queue-lanes span,
+.queue-lanes small,
+.queue-lanes a {
+  line-height: 1.45;
+}
+
+.queue-lanes small {
+  color: #5d7378;
+}
+
+.queue-lanes a {
+  color: #0e6b5f;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .hot-topic-card > div {
   align-items: center;
   display: flex;
@@ -2561,6 +2628,7 @@ p {
 
   .guide-lanes,
   .platform-package-grid,
+  .queue-lanes,
   .preference-panel,
   .publish-action-card,
   .modal-action-row {

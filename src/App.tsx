@@ -34,6 +34,7 @@ type PublishBrief = {
   topic: string;
   intent: string;
   audience: string;
+  trendSignals: string;
 };
 
 const emptyContent: ContentInput = {
@@ -195,6 +196,7 @@ function App() {
     topic: "",
     intent: "",
     audience: "",
+    trendSignals: "",
   });
   const [publishResults, setPublishResults] = useState<DeliveryResult[]>([]);
   const [previewOverrides, setPreviewOverrides] = useState<Record<string, AdaptedContent>>({});
@@ -257,9 +259,28 @@ function App() {
     return issues;
   }, [activePlatformId, cleanPreview, content.coverUrl, content.videoUrl]);
   const accountConnected = activeAccount?.status === "connected";
+  const briefTrendSignals = useMemo(
+    () =>
+      publishBrief.trendSignals
+        .split(/\n|,|，|；|;/)
+        .map((signal) => signal.trim())
+        .filter(Boolean)
+        .slice(0, 5),
+    [publishBrief.trendSignals],
+  );
   const hotSuggestions = useMemo(
-    () => buildHotTopicSuggestions(content.title || "内容创作", activePlatform, preferences),
-    [activePlatform, content.title, preferences],
+    () =>
+      briefTrendSignals.length
+        ? briefTrendSignals.map((signal) => `${activePlatform.name} 可结合：${signal}`)
+        : buildHotTopicSuggestions(content.title || "内容创作", activePlatform, preferences),
+    [activePlatform, briefTrendSignals, content.title, preferences],
+  );
+  const publishResultByPlatform = useMemo(
+    () =>
+      new Map(
+        publishResults.map((result) => [result.platformId, result]),
+      ),
+    [publishResults],
   );
 
   useEffect(() => {
@@ -289,6 +310,7 @@ function App() {
       `内容长度：${lengthLabels[preferences.length]}`,
       `表达风格：${styleLabels[preferences.style]}`,
       `选题方式：${hotnessLabels[preferences.hotness]}`,
+      `用户提供的真实热点/参考素材：${nextBrief.trendSignals || "未提供；不要编造实时热榜，只能给出平台化选题角度"}`,
       `用户最新补充：${latestInput}`,
       "请生成一个多平台发布包，每个平台都要明显符合该平台风格，不要只复制同一份内容。",
     ].join("\n");
@@ -304,6 +326,7 @@ function App() {
       topic: publishBrief.topic || extractTopic(trimmed),
       intent: publishBrief.intent || inferIntent(trimmed),
       audience: publishBrief.audience || inferAudience(trimmed),
+      trendSignals: publishBrief.trendSignals,
     };
     const confirmedPrompt = buildConfirmedPrompt(trimmed, nextBrief);
 
@@ -655,6 +678,20 @@ function App() {
                   placeholder="例如：创作者、产品经理、互联网从业者"
                 />
               </label>
+              <label>
+                热点素材或参考链接
+                <textarea
+                  value={publishBrief.trendSignals}
+                  onChange={(event) =>
+                    setPublishBrief((current) => ({
+                      ...current,
+                      trendSignals: event.target.value,
+                    }))
+                  }
+                  placeholder="可粘贴热榜词、爆文标题、参考链接；未填写时只做平台化选题角度，不伪造实时热点"
+                  rows={3}
+                />
+              </label>
               <div className="platform-chip-row">
                 {platformCatalog.map((platform) => (
                   <span key={platform.id}>{platform.name}</span>
@@ -795,9 +832,33 @@ function App() {
                   })}
                 </div>
 
+                <div className="publish-queue-card">
+                  <div>
+                    <span>全平台发布队列</span>
+                    <strong>{publishResults.length ? "队列已生成" : "待生成队列"}</strong>
+                  </div>
+                  <div className="queue-lanes">
+                    {previews.map((preview) => {
+                      const platform = getPlatformById(preview.adapted.platformId);
+                      const result = publishResultByPlatform.get(platform.id);
+
+                      return (
+                        <article key={platform.id} className={result ? "done" : "ready"}>
+                          <b>{platform.name}</b>
+                          <span>{result ? "已进入发布队列" : "草稿已生成"}</span>
+                          <small>{result?.message ?? platform.promise}</small>
+                          <a href={platform.creatorUrl || platform.loginUrl} target="_blank" rel="noreferrer">
+                            打开创作页
+                          </a>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="hot-topic-card">
                   <div>
-                    <span>{activePlatform.name} 热点推荐</span>
+                    <span>{activePlatform.name} 选题素材</span>
                     <strong>{hotnessLabels[preferences.hotness]} · {styleLabels[preferences.style]}</strong>
                   </div>
                   <ul>
