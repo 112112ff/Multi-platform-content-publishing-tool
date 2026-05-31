@@ -20,7 +20,7 @@ if (existsSync(envPath)) {
 
 const port = Number(process.env.MINIMAX_PROXY_PORT ?? 8787);
 const model = process.env.MINIMAX_MODEL ?? "MiniMax-M2.7";
-const apiUrl = process.env.MINIMAX_API_URL ?? "https://api.minimax.io/v1/chat/completions";
+const apiUrl = process.env.MINIMAX_API_URL ?? "https://api.minimaxi.com/v1/chat/completions";
 const apiKey = process.env.MINIMAX_API_KEY;
 
 const platforms = [
@@ -31,6 +31,27 @@ const platforms = [
   "weibo",
   "douyin",
 ];
+
+const platformAliases = new Map([
+  ["xhs", "xiaohongshu"],
+  ["rednote", "xiaohongshu"],
+  ["小红书", "xiaohongshu"],
+  ["知乎", "zhihu"],
+  ["b站", "bilibili"],
+  ["哔哩哔哩", "bilibili"],
+  ["bili", "bilibili"],
+  ["wechat", "wechat"],
+  ["weixin", "wechat"],
+  ["微信公众号", "wechat"],
+  ["公众号", "wechat"],
+  ["微博", "weibo"],
+  ["抖音", "douyin"],
+]);
+
+const normalizePlatformId = (platformId) => {
+  const normalized = String(platformId ?? "").trim().toLowerCase();
+  return platformAliases.get(normalized) ?? normalized;
+};
 
 const readBody = (request) =>
   new Promise((resolve, reject) => {
@@ -59,7 +80,7 @@ const sendJson = (response, status, payload) => {
 };
 
 const extractJson = (value) => {
-  const trimmed = value.trim();
+  const trimmed = value.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 
   try {
     return JSON.parse(trimmed);
@@ -70,11 +91,30 @@ const extractJson = (value) => {
       return JSON.parse(fenced);
     }
 
-    const start = trimmed.indexOf("{");
-    const end = trimmed.lastIndexOf("}");
+    for (let start = trimmed.indexOf("{"); start >= 0; start = trimmed.indexOf("{", start + 1)) {
+      let depth = 0;
 
-    if (start >= 0 && end > start) {
-      return JSON.parse(trimmed.slice(start, end + 1));
+      for (let index = start; index < trimmed.length; index += 1) {
+        const char = trimmed[index];
+
+        if (char === "{") {
+          depth += 1;
+        }
+
+        if (char === "}") {
+          depth -= 1;
+
+          if (depth === 0) {
+            const candidate = trimmed.slice(start, index + 1);
+
+            try {
+              return JSON.parse(candidate);
+            } catch {
+              break;
+            }
+          }
+        }
+      }
     }
 
     throw new Error("MiniMax response is not valid JSON");
@@ -85,6 +125,8 @@ const buildPrompt = ({ prompt, previousContent }) => `
 你是 ContentBridge 的中文发布助理。用户会用自然语言说明想发布的内容，你需要判断最适合先发布的一个平台，并生成该平台的可发布草稿。
 
 只能从这些 platformId 中选择一个：${platforms.join(", ")}
+
+必须严格围绕用户输入的主题，不得替换为无关行业、无关案例或不存在的产品清单。用户没有要求具体品牌时，不要编造品牌排行榜。
 
 平台选择规则：
 - 小红书：笔记、种草、生活方式、清单、收藏。
@@ -134,7 +176,8 @@ const requestMiniMax = async (payload) => {
           content: buildPrompt(payload),
         },
       ],
-      temperature: 0.7,
+      temperature: 0.35,
+      max_tokens: 1600,
     }),
   });
 
@@ -153,12 +196,14 @@ const requestMiniMax = async (payload) => {
 
   const plan = extractJson(content);
 
-  if (!platforms.includes(plan.platformId)) {
+  const platformId = normalizePlatformId(plan.platformId);
+
+  if (!platforms.includes(platformId)) {
     throw new Error("MiniMax returned unsupported platformId");
   }
 
   return {
-    platformId: plan.platformId,
+    platformId,
     title: String(plan.title ?? ""),
     body: String(plan.body ?? ""),
     tags: Array.isArray(plan.tags) ? plan.tags.map(String).slice(0, 8) : [],
