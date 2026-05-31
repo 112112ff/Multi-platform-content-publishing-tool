@@ -30,6 +30,12 @@ type FlowStep = "idle" | "account" | "publish" | "done";
 
 const defaultPlatformIds = platformCatalog.map((platform) => platform.id);
 
+type PublishBrief = {
+  topic: string;
+  intent: string;
+  audience: string;
+};
+
 const emptyContent: ContentInput = {
   title: "",
   body: "",
@@ -68,6 +74,52 @@ const createMessage = (role: ChatMessage["role"], text: string): ChatMessage => 
   role,
   text,
 });
+
+const extractTopic = (input: string) => {
+  const topicMatch = input.match(/(?:主题是|主题为|关于|围绕)([^，。,.；;]+)/);
+
+  if (topicMatch?.[1]) {
+    return topicMatch[1].trim();
+  }
+
+  return input
+    .replace(/帮我|请|写一篇|做一个|生成|发布|内容|文章|笔记|脚本/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 42);
+};
+
+const inferIntent = (input: string) => {
+  if (/种草|推荐|安利|清单/.test(input)) {
+    return "让读者快速理解价值，并愿意收藏或尝试";
+  }
+
+  if (/分析|观点|为什么|如何看待|长文章|深度/.test(input)) {
+    return "用结构化分析讲清楚背景、判断和可执行结论";
+  }
+
+  if (/口播|视频|脚本|抖音|B站/.test(input)) {
+    return "把核心观点改成适合视频表达的开头、节奏和行动引导";
+  }
+
+  return "把核心观点改成适合多平台分发的可读内容";
+};
+
+const inferAudience = (input: string) => {
+  if (/学生|学习|效率/.test(input)) {
+    return "学生、职场新人和希望提升效率的普通创作者";
+  }
+
+  if (/公司|商业|产品|增长|字节|互联网/.test(input)) {
+    return "关注商业、产品增长和互联网公司的读者";
+  }
+
+  if (/创作者|发布|运营/.test(input)) {
+    return "需要多平台分发内容的创作者和运营人员";
+  }
+
+  return "对该主题感兴趣、希望获得实用信息的泛内容用户";
+};
 
 const createAccountState = (): ConnectedAccount[] =>
   platformCatalog.map((platform) => {
@@ -138,6 +190,11 @@ function App() {
     length: "medium",
     style: "practical",
     hotness: "trend",
+  });
+  const [publishBrief, setPublishBrief] = useState<PublishBrief>({
+    topic: "",
+    intent: "",
+    audience: "",
   });
   const [publishResults, setPublishResults] = useState<DeliveryResult[]>([]);
   const [previewOverrides, setPreviewOverrides] = useState<Record<string, AdaptedContent>>({});
@@ -223,6 +280,19 @@ function App() {
     setMessages((current) => [...current, ...newMessages]);
   };
 
+  const buildConfirmedPrompt = (latestInput: string, nextBrief = publishBrief) =>
+    [
+      `发布主题：${nextBrief.topic || extractTopic(latestInput) || "待确认主题"}`,
+      `核心表达：${nextBrief.intent || inferIntent(latestInput)}`,
+      `目标受众：${nextBrief.audience || inferAudience(latestInput)}`,
+      `发布平台：${platformCatalog.map((platform) => platform.name).join("、")}`,
+      `内容长度：${lengthLabels[preferences.length]}`,
+      `表达风格：${styleLabels[preferences.style]}`,
+      `选题方式：${hotnessLabels[preferences.hotness]}`,
+      `用户最新补充：${latestInput}`,
+      "请生成一个多平台发布包，每个平台都要明显符合该平台风格，不要只复制同一份内容。",
+    ].join("\n");
+
   const applyAgentPrompt = async (prompt: string) => {
     const trimmed = prompt.trim();
 
@@ -230,6 +300,14 @@ function App() {
       return;
     }
 
+    const nextBrief = {
+      topic: publishBrief.topic || extractTopic(trimmed),
+      intent: publishBrief.intent || inferIntent(trimmed),
+      audience: publishBrief.audience || inferAudience(trimmed),
+    };
+    const confirmedPrompt = buildConfirmedPrompt(trimmed, nextBrief);
+
+    setPublishBrief(nextBrief);
     setAgentInput("");
     setIsAgentThinking(true);
     const userMessage = createMessage("user", trimmed);
@@ -245,7 +323,7 @@ function App() {
     pushMessages(userMessage, thinkingMessage);
 
     const plan = await buildAgentPlanWithMiniMax(
-      trimmed,
+      confirmedPrompt,
       content,
       conversationForPlan,
       preferences,
@@ -273,7 +351,7 @@ function App() {
       createMessage("assistant", plan.reply),
       createMessage(
         "assistant",
-        `${plan.source === "minimax" ? "发布助理已生成草稿" : "已使用离线发布规则生成草稿"}。右侧已经生成多平台发布包，你可以逐个平台检查标题、正文和标签，再一键生成发布队列。`,
+        `${plan.source === "minimax" ? "发布助理已生成草稿" : "已使用离线发布规则生成草稿"}。我已按发布 Brief 生成多平台发布包，你可以继续修改 Brief，或逐个平台检查标题、正文和标签。`,
       ),
     );
   };
@@ -541,6 +619,49 @@ function App() {
               ))}
             </div>
 
+            <div className="brief-panel" aria-label="发布需求确认">
+              <div>
+                <span>发布 Brief</span>
+                <b>先确认主题、表达和受众，再生成多平台版本</b>
+              </div>
+              <label>
+                主题
+                <input
+                  value={publishBrief.topic}
+                  onChange={(event) =>
+                    setPublishBrief((current) => ({ ...current, topic: event.target.value }))
+                  }
+                  placeholder="例如：字节跳动公司的产品增长方法"
+                />
+              </label>
+              <label>
+                核心表达
+                <textarea
+                  value={publishBrief.intent}
+                  onChange={(event) =>
+                    setPublishBrief((current) => ({ ...current, intent: event.target.value }))
+                  }
+                  placeholder="例如：讲清楚它为什么能持续做出高频产品，并总结普通团队能借鉴的方法"
+                  rows={3}
+                />
+              </label>
+              <label>
+                目标读者
+                <input
+                  value={publishBrief.audience}
+                  onChange={(event) =>
+                    setPublishBrief((current) => ({ ...current, audience: event.target.value }))
+                  }
+                  placeholder="例如：创作者、产品经理、互联网从业者"
+                />
+              </label>
+              <div className="platform-chip-row">
+                {platformCatalog.map((platform) => (
+                  <span key={platform.id}>{platform.name}</span>
+                ))}
+              </div>
+            </div>
+
             <div className="preference-panel" aria-label="发布偏好">
               <label>
                 长度
@@ -599,9 +720,9 @@ function App() {
               <button
                 type="button"
                 disabled={isAgentThinking}
-                onClick={() => void applyAgentPrompt("根据前面的全部交流和当前发布偏好，重新生成右侧预览")}
+                onClick={() => void applyAgentPrompt("确认当前发布 Brief，并生成多平台发布包")}
               >
-                用当前偏好更新预览
+                确认 Brief 并生成发布包
               </button>
             </div>
 
@@ -613,7 +734,7 @@ function App() {
                 rows={4}
               />
               <button type="submit" disabled={isAgentThinking}>
-                {isAgentThinking ? "生成中..." : "让发布助理生成流程"}
+                {isAgentThinking ? "生成中..." : "补充需求并更新 Brief"}
               </button>
             </form>
           </aside>
@@ -643,8 +764,8 @@ function App() {
                 <header className="single-platform-header">
                   <div>
                     <span>多平台发布包</span>
-                    <h2>{content.title}</h2>
-                    <p>同一份内容已按平台语境自动改写，可逐个平台编辑和发布。</p>
+                    <h2>{publishBrief.topic || content.title}</h2>
+                    <p>{publishBrief.intent || "同一份内容已按平台语境自动改写，可逐个平台编辑和发布。"}</p>
                   </div>
                   <button type="button" onClick={publishAllDrafts}>
                     {isPublishing ? "生成中..." : "一键生成发布队列"}

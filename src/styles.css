@@ -1998,6 +1998,58 @@ p {
   padding: 0.75rem;
 }
 
+.brief-panel {
+  background: #f8fbfb;
+  border: 1px solid #d7e1e4;
+  border-radius: 14px;
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.75rem;
+}
+
+.brief-panel > div:first-child {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.brief-panel span {
+  color: #0e6b5f;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.brief-panel b {
+  color: #243239;
+  line-height: 1.45;
+}
+
+.brief-panel label {
+  color: #425b62;
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 900;
+  gap: 0.32rem;
+}
+
+.brief-panel textarea {
+  min-height: 82px;
+}
+
+.platform-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.platform-chip-row span {
+  background: #ffffff;
+  border: 1px solid #d7e1e4;
+  border-radius: 999px;
+  color: #35575e;
+  font-size: 0.76rem;
+  padding: 0.28rem 0.52rem;
+}
+
 .preference-panel label {
   color: #425b62;
   display: grid;
