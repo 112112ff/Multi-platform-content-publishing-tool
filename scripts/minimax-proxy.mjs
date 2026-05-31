@@ -82,7 +82,7 @@ const extractJson = (value) => {
 };
 
 const buildPrompt = ({ prompt, previousContent }) => `
-你是 ContentBridge 的中文内容发布 Agent。用户会用自然语言说明想发布的内容，你需要判断最适合先发布的一个平台，并生成该平台的可发布草稿。
+你是 ContentBridge 的中文发布助理。用户会用自然语言说明想发布的内容，你需要判断最适合先发布的一个平台，并生成该平台的可发布草稿。
 
 只能从这些 platformId 中选择一个：${platforms.join(", ")}
 
@@ -127,7 +127,7 @@ const requestMiniMax = async (payload) => {
         {
           role: "system",
           content:
-            "你是一个可靠的内容发布 Agent，只返回可被 JSON.parse 解析的 JSON。",
+            "你是一个可靠的内容发布助理，只返回可被 JSON.parse 解析的 JSON。",
         },
         {
           role: "user",

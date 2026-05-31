@@ -80,6 +80,15 @@ const resultText: Record<DeliveryResult["status"], string> = {
   blocked: "被阻止",
 };
 
+const buildDraftText = (preview: PlatformPreview) =>
+  [
+    preview.adapted.title,
+    "",
+    preview.adapted.body,
+    "",
+    preview.adapted.tags.map((tag) => `#${tag}`).join(" "),
+  ].join("\n");
+
 function App() {
   const [content, setContent] = useState<ContentInput>(emptyContent);
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -100,7 +109,7 @@ function App() {
   const [isAgentThinking, setIsAgentThinking] = useState(false);
   const [agentStatus, setAgentStatus] = useState<MiniMaxAgentStatus>({
     mode: "proxy-missing",
-    message: "正在检测智能发布助理...",
+    message: "正在检测发布助理...",
   });
   const [publishResults, setPublishResults] = useState<DeliveryResult[]>([]);
 
@@ -205,7 +214,7 @@ function App() {
     if (plan.source !== "minimax") {
       setAgentStatus({
         mode: "key-missing",
-        message: "智能助理暂不可用，已自动切换离线规则。请检查本地密钥是否有效。",
+        message: "智能生成暂不可用，已自动切换离线规则，仍可继续生成草稿和发布。",
       });
     }
 
@@ -219,7 +228,7 @@ function App() {
       createMessage("assistant", plan.reply),
       createMessage(
         "assistant",
-        `${plan.source === "minimax" ? "智能发布助理已生成草稿" : "已使用离线发布规则生成草稿"}。我只为你打开 ${plan.platform.name} 的账号确认，不会一次弹出六个平台。`,
+        `${plan.source === "minimax" ? "发布助理已生成草稿" : "已使用离线发布规则生成草稿"}。我只为你打开 ${plan.platform.name} 的账号确认，不会一次弹出六个平台。`,
       ),
     );
   };
@@ -286,6 +295,37 @@ function App() {
     ];
   };
 
+  const openPlatformCreatorPage = async (): Promise<DeliveryResult | null> => {
+    if (!cleanPreview || !activeAccount) {
+      return null;
+    }
+
+    const draft = buildDraftText(cleanPreview);
+    let copied = false;
+
+    try {
+      await navigator.clipboard.writeText(draft);
+      copied = true;
+    } catch {
+      copied = false;
+    }
+
+    window.open(activePlatform.creatorUrl || activePlatform.loginUrl, "_blank", "noopener,noreferrer");
+
+    return {
+      id: `manual-${activePlatformId}-${Date.now()}`,
+      platformId: activePlatformId,
+      accountName: activeAccount.displayName,
+      status: "success",
+      executionRoute: "official-creator-page",
+      message: copied
+        ? `已打开 ${activePlatform.name} 官方创作页，并把草稿复制到剪贴板。请在官方页面粘贴后做最终确认发布。`
+        : `已打开 ${activePlatform.name} 官方创作页。浏览器没有允许自动复制，请点击“复制草稿”后粘贴到官方页面确认发布。`,
+      createdAt: new Date().toISOString(),
+      receiverUrl: activePlatform.creatorUrl || activePlatform.loginUrl,
+    };
+  };
+
   const publishToPlatformDraft = async () => {
     if (!cleanPreview || !activeJob || !activeAccount) {
       return;
@@ -308,15 +348,19 @@ function App() {
       jobs: buildBridgeJobs(),
       timeoutMs: 1600,
     });
-    setPublishResults(results);
+    const hasExtensionSuccess = results.some((result) => result.status === "success");
+    const fallbackResult = hasExtensionSuccess ? null : await openPlatformCreatorPage();
+    const nextResults = fallbackResult ? [fallbackResult, ...results] : results;
+
+    setPublishResults(nextResults);
     setIsPublishing(false);
-    setFlowStep(results.some((result) => result.status === "success") ? "done" : "publish");
+    setFlowStep(nextResults.some((result) => result.status === "success") ? "done" : "publish");
     pushMessages(
       createMessage(
         "assistant",
-        results.some((result) => result.status === "success")
+        hasExtensionSuccess
           ? `已把 ${activePlatform.name} 草稿发送给浏览器扩展。请在打开的官方创作页里做最终确认。`
-          : "没有检测到可用的浏览器扩展。你可以先安装 extension 目录里的 Publisher Bridge，或用下方测试接收端验证真实投递。",
+          : `没有检测到可用的浏览器扩展，我已改为打开 ${activePlatform.name} 官方创作页并准备草稿。最终发布仍由你在官方页面确认。`,
       ),
     );
   };
@@ -345,15 +389,7 @@ function App() {
       return;
     }
 
-    await navigator.clipboard.writeText(
-      [
-        cleanPreview.adapted.title,
-        "",
-        cleanPreview.adapted.body,
-        "",
-        cleanPreview.adapted.tags.map((tag) => `#${tag}`).join(" "),
-      ].join("\n"),
-    );
+    await navigator.clipboard.writeText(buildDraftText(cleanPreview));
     pushMessages(createMessage("assistant", "已复制当前平台草稿，可以手动粘贴到平台创作页。"));
   };
 
@@ -364,13 +400,13 @@ function App() {
 
   return (
     <main className="consumer-shell">
-      <section className="agent-home" aria-label="ContentBridge Agent">
+      <section className="agent-home" aria-label="ContentBridge 发布助理">
         <div className="brand-row">
           <div>
             <span>ContentBridge</span>
-            <h1>说一句话，智能发布助理帮你走完单平台发布流程</h1>
+            <h1>说一句话，发布助理帮你走完单平台发布流程</h1>
           </div>
-          <strong>{cleanPreview ? activePlatform.name : "智能发布助理"}</strong>
+          <strong>{cleanPreview ? activePlatform.name : "发布助理"}</strong>
         </div>
 
         <div className="agent-layout">
@@ -378,9 +414,9 @@ function App() {
             <div className={`agent-runtime-status ${agentStatus.mode}`}>
               <b>
                 {agentStatus.mode === "connected"
-                  ? "智能助理已配置"
+                  ? "发布助理已增强"
                   : agentStatus.mode === "key-missing"
-                    ? "智能助理待配置"
+                    ? "离线规则可用"
                     : "离线规则模式"}
               </b>
               <p>{agentStatus.message}</p>
@@ -422,7 +458,7 @@ function App() {
                 rows={4}
               />
               <button type="submit" disabled={isAgentThinking}>
-                {isAgentThinking ? "生成中..." : "让智能发布助理生成流程"}
+                {isAgentThinking ? "生成中..." : "让发布助理生成流程"}
               </button>
             </form>
           </aside>

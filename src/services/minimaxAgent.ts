@@ -47,19 +47,19 @@ export async function checkMiniMaxAgentStatus(): Promise<MiniMaxAgentStatus> {
       return {
         mode: "key-missing",
         model: data.model,
-        message: "智能助理服务已启动，但还没有配置密钥，当前会使用离线规则。",
+        message: "增强生成服务待配置，当前会使用离线规则。",
       };
     }
 
     return {
       mode: "connected",
       model: data.model,
-      message: "智能助理已连接，可以生成更灵活的发布草稿。",
+      message: "发布助理已增强，可以生成更灵活的发布草稿。",
     };
   } catch {
     return {
       mode: "proxy-missing",
-      message: "智能助理服务未启动，当前会使用离线规则。运行 npm run dev:agent 可启用。",
+      message: "增强生成服务未启动，当前会使用离线规则。",
     };
   }
 }
