@@ -8,6 +8,7 @@ import {
   type AgentOperationPlan,
 } from "./integrations/matrixOperationEngine";
 import { adaptContentForSelectedPlatforms } from "./services/adaptContent";
+import { deliverPreviewToReceiver } from "./services/realDelivery";
 import type { PlatformPreview } from "./services/adaptContent";
 import type { AdaptedContent, ContentInput } from "./types/content";
 import type { ConnectedAccount, DeliveryResult } from "./types/delivery";
@@ -590,58 +591,14 @@ function App() {
         };
       }
 
-      try {
-        const response = await fetch(receiverUrl.trim(), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            source: "ContentBridge",
-            mode: "real-webhook-delivery",
-            platformId: job.platformId,
-            platformName: getPlatformLabel(job.platformId),
-            accountId: job.accountId,
-            accountName: account?.displayName ?? getPlatformLabel(job.platformId),
-            executionRoute: job.executionRoute,
-            authMode: job.authMode,
-            title: preview.adapted.title,
-            body: preview.adapted.body,
-            summary: preview.adapted.summary,
-            tags: preview.adapted.tags,
-            score: preview.validation.score,
-            scheduledAt: job.scheduledAt,
-            createdAt,
-          }),
-        });
-
-        return {
-          id: `${job.id}-${Date.now()}`,
-          platformId: job.platformId,
-          accountName: account?.displayName ?? getPlatformLabel(job.platformId),
-          status: response.ok ? "success" as const : "failed" as const,
-          executionRoute: job.executionRoute,
-          message: response.ok
-            ? `已真实 POST 到接收端，HTTP ${response.status}。`
-            : `接收端返回 HTTP ${response.status}，请检查服务配置。`,
-          createdAt,
-          receiverUrl: receiverUrl.trim(),
-        };
-      } catch (error) {
-        return {
-          id: `${job.id}-${Date.now()}`,
-          platformId: job.platformId,
-          accountName: account?.displayName ?? getPlatformLabel(job.platformId),
-          status: "failed" as const,
-          executionRoute: job.executionRoute,
-          message:
-            error instanceof Error
-              ? `真实投递失败：${error.message}`
-              : "真实投递失败，请检查网络、CORS 或接收端。",
-          createdAt,
-          receiverUrl: receiverUrl.trim(),
-        };
-      }
+      return deliverPreviewToReceiver({
+        receiverUrl: receiverUrl.trim(),
+        job,
+        preview,
+        accountName: account?.displayName ?? getPlatformLabel(job.platformId),
+        platformName: getPlatformLabel(job.platformId),
+        createdAt,
+      });
     }));
 
     setPublishResults(nextResults);

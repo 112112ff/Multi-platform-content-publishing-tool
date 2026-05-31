@@ -107,7 +107,7 @@ PR 描述必须包含：
 ### 第四阶段：发布闭环
 
 - PR 14：实现发布健康分和校验规则。
-- PR 15：实现模拟一键发布。
+- PR 15：实现 Webhook 真实投递。
 - PR 16：实现发布结果和历史记录。
 - PR 17：完善 README、截图、Demo 链接和最终验收说明。
 
@@ -128,8 +128,8 @@ PR 描述必须包含：
 7. 使用 Webhook 实发模式，把内容真实 POST 到外部接收端。
 8. 展示 Webhook 接收端收到的 JSON payload。
 9. 展示发布结果和历史记录。
-10. 新增一个自定义平台，证明扩展更多平台是可运行功能。
-11. 讲解 `PlatformAdapter` 与 `createCustomPlatformAdapter` 扩展架构。
+10. 讲解 `PlatformAdapter` 与矩阵运营引擎的扩展架构。
+11. 说明新增平台时如何补充适配器、账号通道和发布路线。
 12. 说明两人分工和持续 PR 过程。
 
 详细录制脚本见 [06-demo-script.md](./06-demo-script.md)。

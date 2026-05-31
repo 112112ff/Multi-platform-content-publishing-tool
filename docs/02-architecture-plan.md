@@ -110,7 +110,7 @@ export interface PlatformAdapter {
 
 MVP 当前实现了两类可运行发布通道：
 
-- 本地演示通道：调用各平台 `adapter.publish()` 生成草稿、成功或失败结果，用于稳定演示平台规则和发布闭环。
+- 本地校验通道：调用各平台 `adapter.validate()` 和任务模型生成草稿、阻塞或可投递状态，用于稳定展示平台规则。
 - Webhook 实发通道：前端把每个平台适配后的内容真实 POST 到用户配置的 Webhook URL，接收端可以是 webhook.site、团队自建后端、自动化机器人或未来官方平台代理服务。
 
 未来接入官方发布时，建议新增后端 `OfficialPlatformPublisher`：
@@ -162,7 +162,7 @@ export const platformAdapters = [
 
 ### 方式二：页面配置动态平台
 
-如果只是为了快速验证新平台规则，可以在页面的“自定义平台接入中心”填写：
+如果只是为了快速验证新平台规则，可以新增 `CustomPlatformConfig` 或扩展 `matrixOperationEngine` 中的账号通道配置：
 
 - 平台名称
 - 平台定位
@@ -205,12 +205,12 @@ PlatformAdapter.adapt()
   后续：规则模板 + LLM 改写
 ```
 
-这意味着主流程、预览、校验、发布模拟都不需要重写。
+这意味着主流程、预览、校验、真实投递都不需要重写。
 
 ## 健壮性要求
 
 - 表单输入必须有默认值和空状态。
 - 校验规则不能让页面崩溃。
 - 缺少封面或视频链接时应给出提示，而不是阻塞全部平台。
-- 发布模拟失败要展示原因。
+- 真实投递失败要展示原因。
 - 主分支每次合并后必须能 `npm install`、`npm run dev`、`npm run build`。
