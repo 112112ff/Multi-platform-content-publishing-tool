@@ -2,7 +2,9 @@ import type { ContentInput } from "../types/content";
 import {
   buildAgentPlan,
   buildAgentPlanFromRemote,
+  type AgentConversationMessage,
   type AgentPlan,
+  type AgentPreferences,
   type RemoteAgentPlan,
 } from "./agentPlanner";
 
@@ -67,6 +69,8 @@ export async function checkMiniMaxAgentStatus(): Promise<MiniMaxAgentStatus> {
 export async function buildAgentPlanWithMiniMax(
   prompt: string,
   previousContent?: ContentInput,
+  conversation: AgentConversationMessage[] = [],
+  preferences?: AgentPreferences,
 ): Promise<AgentPlan> {
   const endpoint =
     import.meta.env.VITE_AGENT_API_URL?.trim() || defaultAgentApiUrl;
@@ -80,6 +84,8 @@ export async function buildAgentPlanWithMiniMax(
       body: JSON.stringify({
         prompt,
         previousContent,
+        conversation,
+        preferences,
       }),
     });
 
@@ -93,8 +99,15 @@ export async function buildAgentPlanWithMiniMax(
       throw new Error(data.error);
     }
 
-    return buildAgentPlanFromRemote(data.plan, prompt, previousContent);
+    return buildAgentPlanFromRemote(data.plan, prompt, previousContent, preferences);
   } catch {
-    return buildAgentPlan(prompt, previousContent);
+    const contextPrompt = [
+      ...conversation
+        .filter((message) => message.role === "user")
+        .map((message) => message.text),
+      prompt,
+    ].join("\n");
+
+    return buildAgentPlan(contextPrompt, previousContent, preferences);
   }
 }

@@ -1,8 +1,11 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   accountChannels,
+  buildHotTopicSuggestions,
   getPlatformById,
   platformCatalog,
+  type AgentConversationMessage,
+  type AgentPreferences,
   type ProductPlatformId,
 } from "./services/agentPlanner";
 import { buildAgentOperationPlan, type PublishJob } from "./integrations/matrixOperationEngine";
@@ -36,9 +39,27 @@ const emptyContent: ContentInput = {
 
 const quickPrompts = [
   "帮我写一篇小红书笔记，主题是 AI 工具提升学习效率",
+  "写一篇公众号长文章，主题是字节跳动公司的产品增长方法",
   "做一个抖音口播脚本，讲多平台内容发布怎么省时间",
-  "写一篇知乎回答：创作者为什么不能直接复制同一份内容",
 ];
+
+const lengthLabels: Record<AgentPreferences["length"], string> = {
+  short: "短内容",
+  medium: "标准",
+  long: "长文章",
+};
+
+const styleLabels: Record<AgentPreferences["style"], string> = {
+  practical: "实用清单",
+  professional: "专业分析",
+  story: "真实故事",
+  viral: "传播感",
+};
+
+const hotnessLabels: Record<AgentPreferences["hotness"], string> = {
+  stable: "稳妥常青",
+  trend: "结合热点",
+};
 
 const createMessage = (role: ChatMessage["role"], text: string): ChatMessage => ({
   id: `${role}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -111,6 +132,11 @@ function App() {
     mode: "proxy-missing",
     message: "正在检测发布助理...",
   });
+  const [preferences, setPreferences] = useState<AgentPreferences>({
+    length: "medium",
+    style: "practical",
+    hotness: "trend",
+  });
   const [publishResults, setPublishResults] = useState<DeliveryResult[]>([]);
 
   const activePlatform = getPlatformById(activePlatformId);
@@ -175,6 +201,10 @@ function App() {
     return issues;
   }, [activePlatformId, cleanPreview, content.coverUrl, content.videoUrl]);
   const accountConnected = activeAccount?.status === "connected";
+  const hotSuggestions = useMemo(
+    () => buildHotTopicSuggestions(content.title || "内容创作", activePlatform, preferences),
+    [activePlatform, content.title, preferences],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -203,12 +233,24 @@ function App() {
 
     setAgentInput("");
     setIsAgentThinking(true);
-    pushMessages(
-      createMessage("user", trimmed),
-      createMessage("assistant", "我正在分析需求、选择平台并生成草稿。"),
+    const userMessage = createMessage("user", trimmed);
+    const thinkingMessage = createMessage(
+      "assistant",
+      "我会结合前面的交流、发布偏好和热点方向，更新右侧预览。",
     );
+    const conversationForPlan: AgentConversationMessage[] = [
+      ...messages.map((message) => ({ role: message.role, text: message.text })),
+      { role: userMessage.role, text: userMessage.text },
+    ];
 
-    const plan = await buildAgentPlanWithMiniMax(trimmed, content);
+    pushMessages(userMessage, thinkingMessage);
+
+    const plan = await buildAgentPlanWithMiniMax(
+      trimmed,
+      content,
+      conversationForPlan,
+      preferences,
+    );
     const platformId = plan.platform.id;
 
     if (plan.source !== "minimax") {
@@ -228,7 +270,7 @@ function App() {
       createMessage("assistant", plan.reply),
       createMessage(
         "assistant",
-        `${plan.source === "minimax" ? "发布助理已生成草稿" : "已使用离线发布规则生成草稿"}。我只为你打开 ${plan.platform.name} 的账号确认，不会一次弹出六个平台。`,
+        `${plan.source === "minimax" ? "发布助理已生成草稿" : "已使用离线发布规则生成草稿"}。右侧预览已经合并本轮对话和偏好，你可以继续补充要求，也可以直接修改标题、正文和标签。`,
       ),
     );
   };
@@ -450,6 +492,70 @@ function App() {
               ))}
             </div>
 
+            <div className="preference-panel" aria-label="发布偏好">
+              <label>
+                长度
+                <select
+                  value={preferences.length}
+                  onChange={(event) =>
+                    setPreferences((current) => ({
+                      ...current,
+                      length: event.target.value as AgentPreferences["length"],
+                    }))
+                  }
+                >
+                  {Object.entries(lengthLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                风格
+                <select
+                  value={preferences.style}
+                  onChange={(event) =>
+                    setPreferences((current) => ({
+                      ...current,
+                      style: event.target.value as AgentPreferences["style"],
+                    }))
+                  }
+                >
+                  {Object.entries(styleLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                选题
+                <select
+                  value={preferences.hotness}
+                  onChange={(event) =>
+                    setPreferences((current) => ({
+                      ...current,
+                      hotness: event.target.value as AgentPreferences["hotness"],
+                    }))
+                  }
+                >
+                  {Object.entries(hotnessLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                disabled={isAgentThinking}
+                onClick={() => void applyAgentPrompt("根据前面的全部交流和当前发布偏好，重新生成右侧预览")}
+              >
+                用当前偏好更新预览
+              </button>
+            </div>
+
             <form className="agent-input-card" onSubmit={submitPrompt}>
               <textarea
                 value={agentInput}
@@ -495,6 +601,18 @@ function App() {
                     {accountConnected ? "账号已确认" : "确认账号"}
                   </button>
                 </header>
+
+                <div className="hot-topic-card">
+                  <div>
+                    <span>热点推荐</span>
+                    <strong>{hotnessLabels[preferences.hotness]} · {styleLabels[preferences.style]}</strong>
+                  </div>
+                  <ul>
+                    {hotSuggestions.map((suggestion) => (
+                      <li key={suggestion}>{suggestion}</li>
+                    ))}
+                  </ul>
+                </div>
 
                 <div className="draft-editor-card">
                   <label>

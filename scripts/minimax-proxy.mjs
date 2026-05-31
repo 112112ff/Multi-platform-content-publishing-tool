@@ -121,12 +121,15 @@ const extractJson = (value) => {
   }
 };
 
-const buildPrompt = ({ prompt, previousContent }) => `
+const buildPrompt = ({ prompt, previousContent, conversation, preferences }) => `
 你是 ContentBridge 的中文发布助理。用户会用自然语言说明想发布的内容，你需要判断最适合先发布的一个平台，并生成该平台的可发布草稿。
 
 只能从这些 platformId 中选择一个：${platforms.join(", ")}
 
 必须严格围绕用户输入的主题，不得替换为无关行业、无关案例或不存在的产品清单。用户没有要求具体品牌时，不要编造品牌排行榜。
+如果用户说“字节”且上下文包含公司、互联网、产品、增长、组织、抖音、TikTok、长文章等语义，应理解为“字节跳动公司”，不要解释成计算机字节单位。
+必须综合完整对话历史和发布偏好，不要只看最后一句。
+标题、正文和标签要结合近期通用热点表达方式，例如 AI 原生、效率提升、组织方法、真实案例、收藏清单、平台原生语气；没有实时联网数据时不要伪造具体榜单、日期或未经验证的数据。
 
 平台选择规则：
 - 小红书：笔记、种草、生活方式、清单、收藏。
@@ -147,6 +150,12 @@ const buildPrompt = ({ prompt, previousContent }) => `
 
 用户输入：
 ${prompt}
+
+完整对话历史：
+${JSON.stringify(conversation ?? [])}
+
+发布偏好：
+${JSON.stringify(preferences ?? null)}
 
 上一版内容，可为空：
 ${JSON.stringify(previousContent ?? null)}
@@ -248,6 +257,8 @@ const server = http.createServer(async (request, response) => {
     const plan = await requestMiniMax({
       prompt,
       previousContent: payload.previousContent,
+      conversation: Array.isArray(payload.conversation) ? payload.conversation : [],
+      preferences: payload.preferences,
     });
 
     sendJson(response, 200, { ok: true, model, plan });

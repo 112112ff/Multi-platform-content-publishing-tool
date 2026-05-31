@@ -17,6 +17,20 @@ describe("agentPlanner", () => {
     expect(plan.reply).toContain("知乎");
   });
 
+  it("treats byte in company context as ByteDance instead of the computer unit", () => {
+    const plan = buildAgentPlan("帮我写一篇关于字节的公众号长文章，偏专业分析", undefined, {
+      length: "long",
+      style: "professional",
+      hotness: "trend",
+    });
+
+    expect(plan.platform.id).toBe("wechat");
+    expect(plan.content.title).toContain("字节跳动");
+    expect(plan.content.body).toContain("字节跳动公司");
+    expect(plan.content.body).not.toContain("计算机字节单位");
+    expect(plan.content.tags).toContain("字节跳动");
+  });
+
   it("merges MiniMax JSON into a safe single-platform plan", () => {
     const plan = buildAgentPlanFromRemote(
       {
