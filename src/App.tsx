@@ -728,7 +728,7 @@ function App() {
                   "可直接粘贴公众号文章、知乎回答、产品介绍、活动文案或带 #标签 的草稿。",
                   "例如：第一行写标题，正文写观点和案例，最后一行写 #标签。",
                 ].join("\n")}
-                rows={7}
+                rows={5}
               />
               <div className="source-draft-meta">
                 <span>{hasSourceDraft ? `已识别：${sourceDraft.title || "未命名草稿"}` : "等待粘贴原文"}</span>
@@ -774,7 +774,7 @@ function App() {
                     setPublishBrief((current) => ({ ...current, intent: event.target.value }))
                   }
                   placeholder="例如：讲清楚它为什么能持续做出高频产品，并总结普通团队能借鉴的方法"
-                  rows={3}
+                  rows={2}
                 />
               </label>
               <label>
@@ -798,7 +798,7 @@ function App() {
                     }))
                   }
                   placeholder="可粘贴热榜词、爆文标题、参考链接；未填写时只做平台化选题角度，不伪造实时热点"
-                  rows={3}
+                  rows={2}
                 />
               </label>
               <div className="platform-chip-row">
@@ -891,7 +891,7 @@ function App() {
                 value={agentInput}
                 onChange={(event) => setAgentInput(event.target.value)}
                 placeholder="例如：保留原文观点，语气更像真实经验分享；小红书更轻松，知乎更专业"
-                rows={4}
+                rows={3}
               />
               <div className="quick-prompt-row" aria-label="示例补充要求">
                 {quickPrompts.map((prompt) => (
@@ -910,14 +910,16 @@ function App() {
               </button>
             </form>
 
-            <div className="assistant-log-card">
-              <div className="section-heading compact">
-                <small>记录</small>
-                <div>
-                  <span>对话记录</span>
-                  <b>只保留生成反馈和你的补充要求，避免干扰主流程</b>
+            <details className="assistant-log-card">
+              <summary>
+                <div className="section-heading compact">
+                  <small>记录</small>
+                  <div>
+                    <span>对话记录</span>
+                    <b>只保留生成反馈和你的补充要求，避免干扰主流程</b>
+                  </div>
                 </div>
-              </div>
+              </summary>
               <div className="chat-stream" aria-live="polite">
                 {messages.map((message) => (
                   <article className={`chat-bubble ${message.role}`} key={message.id}>
@@ -926,14 +928,48 @@ function App() {
                   </article>
                 ))}
               </div>
-            </div>
+            </details>
           </aside>
 
           <section className="publish-flow-panel" aria-label="多平台发布包">
             {!cleanPreview ? (
               <div className="empty-product-guide">
-                <p>把一份原始内容交给发布助理，系统会自动生成公众号、知乎、B站、小红书、微博、抖音版本，并整理成发布队列。</p>
-                <div className="guide-lanes">
+                <header className="empty-product-hero">
+                  <span>多平台发布工作台</span>
+                  <h2>左侧贴原文，右侧生成六个平台版本</h2>
+                  <p>
+                    这里会承接原文识别、平台改写、发布体检和队列状态。当前先展示工作流和平台入口，生成后会替换成可编辑预览。
+                  </p>
+                </header>
+
+                <div className="home-brief-grid">
+                  <article className="source-preview-card">
+                    <span>当前原文识别</span>
+                    <strong>{hasSourceDraft ? sourceDraft.title || "未命名草稿" : "等待粘贴原文"}</strong>
+                    <p>
+                      {hasSourceDraft
+                        ? sourceDraft.body.slice(0, 180)
+                        : "在左侧粘贴已有文章、产品介绍、活动文案或带标签草稿后，这里会显示识别结果。"}
+                    </p>
+                    <div>
+                      {(hasSourceDraft ? sourceDraft.tags : ["标题", "正文", "标签"]).map((tag) => (
+                        <em key={tag}>{tag}</em>
+                      ))}
+                    </div>
+                  </article>
+
+                  <article className="home-flow-card">
+                    <span>生成后会出现</span>
+                    <ol>
+                      <li>六个平台标题、正文、标签</li>
+                      <li>当前平台发布体检和风险提醒</li>
+                      <li>一键生成发布队列</li>
+                      <li>打开官方创作页或测试接收端</li>
+                    </ol>
+                  </article>
+                </div>
+
+                <div className="platform-starter-grid">
                   {platformCatalog.map((platform) => (
                     <button
                       type="button"
