@@ -54,6 +54,19 @@ const quickPrompts = [
   "做一个抖音口播脚本，讲多平台内容发布怎么省时间",
 ];
 
+const demoSourceText = [
+  "AI 工具如何真正提升学习效率",
+  "",
+  "我最近发现，真正有用的 AI 工具不是替你偷懒，而是帮你把学习流程拆清楚。",
+  "过去我复习一门课时，经常直接开始刷资料，结果越看越乱。后来我把流程拆成三步：先让 AI 帮我整理知识框架，再围绕薄弱点生成练习题，最后把错题交给 AI 做复盘总结。",
+  "",
+  "这个方法最适合三类人：准备考试的学生、需要快速学新技能的职场新人、以及要长期输出内容的创作者。它的关键不是让 AI 替你完成答案，而是让它帮你把问题变清楚、把练习变具体、把反馈变及时。",
+  "",
+  "我的真实建议是：不要一上来就问 AI 给我答案，而是问它三个问题：我现在应该先学什么？我哪里可能理解错？我下一步该怎么练？",
+  "",
+  "#AI工具 #学习效率 #学习方法 #自我提升",
+].join("\n");
+
 const lengthLabels: Record<AgentPreferences["length"], string> = {
   short: "短内容",
   medium: "标准",
@@ -313,6 +326,30 @@ function App() {
     setMessages((current) => [...current, ...newMessages]);
   };
 
+  const fillDemoSource = () => {
+    setSourceText(demoSourceText);
+    setPublishBrief({
+      topic: "AI 工具如何真正提升学习效率",
+      intent: "把一篇已有经验稿改写成适合多平台分发的实用内容",
+      audience: "学生、职场新人和内容创作者",
+      trendSignals: "AI 原生应用\n效率工具\n学习方法\n真实经验复盘",
+    });
+    setPreferences({
+      length: "medium",
+      style: "practical",
+      hotness: "trend",
+    });
+    setFlowStep("idle");
+    setPublishResults([]);
+    setPreviewOverrides({});
+    pushMessages(
+      createMessage(
+        "assistant",
+        "已填入一份演示原文。你可以直接点击生成发布包，查看六个平台的标题、正文和标签如何被分别改写。",
+      ),
+    );
+  };
+
   const buildConfirmedPrompt = (
     latestInput: string,
     nextBrief = publishBrief,
@@ -541,6 +578,15 @@ function App() {
       adapted: previewOverrides[platformId] ?? preview.adapted,
     };
   };
+  const generatedDraftCount = Object.keys(previewOverrides).length || previews.length;
+  const generatedTagCount = previews.reduce((total, preview) => {
+    const displayPreview = getPreviewForPlatform(preview);
+    return total + displayPreview.adapted.tags.length;
+  }, 0);
+  const readyPlatformCount = previews.filter((preview) => {
+    const displayPreview = getPreviewForPlatform(preview);
+    return displayPreview.validation.canPublish;
+  }).length;
 
   const openPlatformCreatorPage = async (): Promise<DeliveryResult | null> => {
     if (!cleanPreview || !activeAccount) {
@@ -688,8 +734,21 @@ function App() {
           <div>
             <span>ContentBridge</span>
             <h1>输入一份内容，生成全平台发布包</h1>
+            <p>面向创作者的多平台内容分发 MVP：原文识别、平台化改写、可编辑预览、发布队列和线上增强全部跑通。</p>
           </div>
-          <strong>{cleanPreview ? `${previews.length} 个平台已适配` : "多平台发布助理"}</strong>
+          <div className="brand-actions">
+            <strong>{cleanPreview ? `${previews.length} 个平台已适配` : "线上 Demo 可用"}</strong>
+            <button type="button" onClick={fillDemoSource}>
+              填入演示原文
+            </button>
+          </div>
+        </div>
+
+        <div className="proof-strip" aria-label="核心能力证明">
+          <span>6 平台原生改写</span>
+          <span>标题 / 正文 / 标签可编辑</span>
+          <span>线上增强 + 离线兜底</span>
+          <span>官方创作页 / Webhook 验证</span>
         </div>
 
         <div className="agent-layout">
@@ -940,7 +999,40 @@ function App() {
                   <p>
                     这里会承接原文识别、平台改写、发布体检和队列状态。当前先展示工作流和平台入口，生成后会替换成可编辑预览。
                   </p>
+                  <div className="hero-action-row">
+                    <button type="button" onClick={fillDemoSource}>
+                      填入演示原文
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isAgentThinking}
+                      onClick={() =>
+                        void applyAgentPrompt(
+                          hasSourceDraft
+                            ? "请基于左侧原文生成多平台发布包，保留核心观点，分别优化标题、正文和标签"
+                            : "请生成一篇关于 AI 工具提升学习效率的多平台发布包",
+                        )
+                      }
+                    >
+                      {isAgentThinking ? "生成中..." : "立即生成发布包"}
+                    </button>
+                  </div>
                 </header>
+
+                <div className="judge-fit-grid" aria-label="评审得分点">
+                  <article>
+                    <b>完整度</b>
+                    <span>输入、改写、预览、编辑、队列、发布验证形成闭环</span>
+                  </article>
+                  <article>
+                    <b>创新性</b>
+                    <span>按平台语境生成不同标题、正文、标签和发布策略</span>
+                  </article>
+                  <article>
+                    <b>工程质量</b>
+                    <span>平台适配器、线上增强、离线兜底和扩展文档已拆层</span>
+                  </article>
+                </div>
 
                 <div className="home-brief-grid">
                   <article className="source-preview-card">
@@ -997,6 +1089,25 @@ function App() {
                     {isPublishing ? "生成中..." : "一键生成发布队列"}
                   </button>
                 </header>
+
+                <div className="result-metric-grid" aria-label="发布包指标">
+                  <article>
+                    <span>{generatedDraftCount}</span>
+                    <b>平台版本</b>
+                  </article>
+                  <article>
+                    <span>{generatedTagCount}</span>
+                    <b>标签建议</b>
+                  </article>
+                  <article>
+                    <span>{readyPlatformCount}</span>
+                    <b>体检通过</b>
+                  </article>
+                  <article>
+                    <span>{publishResults.length || "待"}</span>
+                    <b>发布队列</b>
+                  </article>
+                </div>
 
                 <div className="platform-package-grid">
                   {previews.map((preview) => {
@@ -1178,6 +1289,13 @@ function App() {
           </section>
         </div>
       </section>
+
+      {isAgentThinking ? (
+        <div className="generation-status" role="status" aria-live="polite">
+          <strong>正在生成多平台发布包</strong>
+          <span>发布助理会优先调用线上增强能力；若服务不可用，会自动切换离线规则。</span>
+        </div>
+      ) : null}
 
       {accountModalOpen ? (
         <div className="account-modal-backdrop" onClick={() => setAccountModalOpen(false)}>

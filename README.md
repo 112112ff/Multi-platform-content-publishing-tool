@@ -8,6 +8,14 @@ ContentBridge 是一个面向创作者的多平台内容发布工具 MVP，对�
 待补充
 ```
 
+线上体验地址：
+
+```txt
+https://contentbridge.onrender.com
+```
+
+Render 免费实例冷启动可能需要约 50 秒，页面打开后可点击“填入演示原文”快速体验完整链路。
+
 建议录制脚本见 [docs/06-demo-script.md](./docs/06-demo-script.md)。
 
 ## 核心亮点
@@ -111,7 +119,7 @@ npm run test:run
 - @types/react
 - @types/react-dom
 
-原创功能包括：MiniMax 增强生成接入、本地离线规则降级、多轮发布助理、长度与风格偏好控制、热点建议、单平台发布流程、平台适配器、发布体检、真实 Webhook 投递、浏览器扩展 Publisher Bridge、项目文档与协作规范。
+原创功能包括：MiniMax 增强生成接入、本地离线规则降级、多轮发布助理、长度与风格偏好控制、热点建议、六平台发布流程、平台适配器、发布体检、真实 Webhook 投递、浏览器扩展 Publisher Bridge、项目文档与协作规范。
 
 ## 文档导航
 
@@ -123,7 +131,7 @@ npm run test:run
 - [评审策略与得分点](./docs/05-review-strategy.md)
 - [Demo 录制脚本](./docs/06-demo-script.md)
 - [参赛提交说明](./docs/07-submission-brief.md)
-- [Agent 单平台发布流程](./docs/09-agent-single-platform-flow.md)
+- [发布助理多平台发布流程](./docs/09-multi-platform-publishing-flow.md)
 - [MiniMax Agent 接入说明](./docs/10-minimax-agent-integration.md)
 - [线上 AI 代理部署说明](./docs/12-online-agent-proxy.md)
 - [评委运行与提交说明](./docs/11-judge-runbook.md)
@@ -145,7 +153,9 @@ npm run test:run
 
 - 仓库在截止后改为 Public。
 - README 中补充可播放的 Demo 视频链接。
+- README 中保留线上体验地址，并确认隐身窗口可访问。
 - `npm install`、`npm run dev`、`npm run dev:agent`、`npm run build`、`npm run test:run` 可运行。
+- 线上环境 `https://contentbridge.onrender.com/api/agent-health` 返回 `configured=true`。
 - README 列明依赖和原创功能边界。
 - PR 描述完整且与代码变更一致。
 - 两名队员均有各自账号的 commit 和 PR 记录。
