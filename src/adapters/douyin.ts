@@ -48,7 +48,7 @@ export const douyinAdapter: PlatformAdapter = {
       issues.push({
         level: "warning",
         message: "缺少视频链接。",
-        suggestion: "抖音模拟发布可保存草稿，正式发布建议绑定视频素材。",
+        suggestion: "抖音发布前可先保存草稿，正式发布建议绑定视频素材。",
       });
     }
     if (input.tags.length < 2) {

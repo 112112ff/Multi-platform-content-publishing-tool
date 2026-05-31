@@ -156,7 +156,7 @@ export const platformAdapters = [
 1. 在 `src/adapters/weibo.ts` 中创建 `weiboAdapter`。
 2. 实现 `adapt`，生成微博风格内容。
 3. 实现 `validate`，检查字数、话题、图片等规则。
-4. 实现 `publish`，MVP 阶段返回模拟发布结果。
+4. 实现 `publish` 或后端 Publisher，MVP 阶段通过 Webhook 真实投递返回可验证结果。
 5. 在 `registry.ts` 中注册 `weiboAdapter`。
 6. 如有特殊展示信息，在 `platformProfiles.ts` 中补充平台资料。
 
@@ -178,7 +178,7 @@ export const platformAdapters = [
 - 平台适配预览
 - 发布体检
 - 发布队列
-- 本地发布记录
+- Webhook 投递结果
 - Webhook 实发 payload
 
 这证明扩展更多平台不仅是文档设计，也已经落到可运行功能里。

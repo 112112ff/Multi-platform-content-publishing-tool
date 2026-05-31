@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
+import { MatrixDeliveryPanel } from "./components/MatrixDeliveryPanel";
 import { emptyContentInput, sampleContentInput } from "./data/sampleContent";
 import {
   buildAgentOperationPlan,
@@ -9,6 +10,7 @@ import {
 import { adaptContentForSelectedPlatforms } from "./services/adaptContent";
 import type { PlatformPreview } from "./services/adaptContent";
 import type { AdaptedContent, ContentInput } from "./types/content";
+import type { ConnectedAccount, DeliveryResult } from "./types/delivery";
 
 type ChatMessage = {
   id: string;
@@ -31,13 +33,6 @@ type InspirationCard = {
     text: string;
   }[];
   detail: string;
-};
-
-type ConnectedAccount = AccountChannel & {
-  status: "connected" | "disconnected";
-  connectedAt?: string;
-  loginUrl: string;
-  loginLabel: string;
 };
 
 const platformAlias: Record<string, string> = {
@@ -146,6 +141,12 @@ const createAccountState = (): ConnectedAccount[] =>
 const accountStatusLabel: Record<ConnectedAccount["status"], string> = {
   connected: "已连接",
   disconnected: "待连接",
+};
+
+const publishResultLabel: Record<DeliveryResult["status"], string> = {
+  success: "已实发",
+  failed: "投递失败",
+  blocked: "待处理",
 };
 
 const getPlatformLabel = (platformId: string) =>
@@ -397,6 +398,9 @@ function App() {
   );
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [accountModalReason, setAccountModalReason] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [receiverUrl, setReceiverUrl] = useState("");
+  const [publishResults, setPublishResults] = useState<DeliveryResult[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([
     createMessage(
       "assistant",
@@ -529,6 +533,132 @@ function App() {
   const openAccountModal = (reason: string) => {
     setAccountModalReason(reason);
     setAccountModalOpen(true);
+  };
+
+  const deliverPublishPlan = async () => {
+    if (!operationPlan || !operationPlan.publishJobs.length) {
+      return;
+    }
+
+    setIsPublishing(true);
+    const createdAt = new Date().toISOString();
+
+    if (!receiverUrl.trim()) {
+      const blockedResults = operationPlan.publishJobs.map((job) => {
+        const account = connectedAccounts.find((item) => item.id === job.accountId);
+
+        return {
+          id: `${job.id}-${Date.now()}`,
+          platformId: job.platformId,
+          accountName: account?.displayName ?? getPlatformLabel(job.platformId),
+          status: "blocked" as const,
+          executionRoute: job.executionRoute,
+          message: "真实投递地址为空，未执行任何发布请求。",
+          createdAt,
+        };
+      });
+
+      setPublishResults(blockedResults);
+      setMessages((current) => [
+        ...current,
+        createMessage(
+          "assistant",
+          "我没有执行发布，因为真实投递地址为空。请填入 webhook.site、自建后端或自动化服务的接收 URL。",
+        ),
+      ]);
+      setIsPublishing(false);
+      return;
+    }
+
+    const nextResults = await Promise.all(operationPlan.publishJobs.map(async (job) => {
+      const account = connectedAccounts.find((item) => item.id === job.accountId);
+      const preview = previews.find(
+        (item) => item.adapted.platformId === job.platformId,
+      );
+      const canPublish = Boolean(preview?.validation.canPublish);
+
+      if (!preview || !canPublish) {
+        return {
+          id: `${job.id}-${Date.now()}`,
+          platformId: job.platformId,
+          accountName: account?.displayName ?? getPlatformLabel(job.platformId),
+          status: "blocked" as const,
+          executionRoute: job.executionRoute,
+          message: "发布体检未通过，已阻止真实投递。",
+          createdAt,
+          receiverUrl: receiverUrl.trim(),
+        };
+      }
+
+      try {
+        const response = await fetch(receiverUrl.trim(), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            source: "ContentBridge",
+            mode: "real-webhook-delivery",
+            platformId: job.platformId,
+            platformName: getPlatformLabel(job.platformId),
+            accountId: job.accountId,
+            accountName: account?.displayName ?? getPlatformLabel(job.platformId),
+            executionRoute: job.executionRoute,
+            authMode: job.authMode,
+            title: preview.adapted.title,
+            body: preview.adapted.body,
+            summary: preview.adapted.summary,
+            tags: preview.adapted.tags,
+            score: preview.validation.score,
+            scheduledAt: job.scheduledAt,
+            createdAt,
+          }),
+        });
+
+        return {
+          id: `${job.id}-${Date.now()}`,
+          platformId: job.platformId,
+          accountName: account?.displayName ?? getPlatformLabel(job.platformId),
+          status: response.ok ? "success" as const : "failed" as const,
+          executionRoute: job.executionRoute,
+          message: response.ok
+            ? `已真实 POST 到接收端，HTTP ${response.status}。`
+            : `接收端返回 HTTP ${response.status}，请检查服务配置。`,
+          createdAt,
+          receiverUrl: receiverUrl.trim(),
+        };
+      } catch (error) {
+        return {
+          id: `${job.id}-${Date.now()}`,
+          platformId: job.platformId,
+          accountName: account?.displayName ?? getPlatformLabel(job.platformId),
+          status: "failed" as const,
+          executionRoute: job.executionRoute,
+          message:
+            error instanceof Error
+              ? `真实投递失败：${error.message}`
+              : "真实投递失败，请检查网络、CORS 或接收端。",
+          createdAt,
+          receiverUrl: receiverUrl.trim(),
+        };
+      }
+    }));
+
+    setPublishResults(nextResults);
+    setMessages((current) => [
+      ...current,
+      createMessage(
+        "assistant",
+        `真实投递完成：共 ${nextResults.length} 个任务，${
+          nextResults.filter((result) => result.status === "success").length
+        } 个成功，${
+          nextResults.filter((result) => result.status === "failed").length
+        } 个失败，${
+          nextResults.filter((result) => result.status === "blocked").length
+        } 个被发布体检拦截。`,
+      ),
+    ]);
+    setIsPublishing(false);
   };
 
   const agentPanel = (
@@ -883,45 +1013,22 @@ function App() {
                       ))}
                     </div>
                   </section>
-                  <section className="matrix-plan-card">
-                    <h3>账号矩阵任务</h3>
-                    <div className="account-mini-list">
-                      {desiredAccountConnections.length ? (
-                        desiredAccountConnections.map((account) => (
-                          <button
-                            type="button"
-                            key={account.id}
-                            className={account.status === "connected" ? "connected" : ""}
-                            onClick={() =>
-                              openAccountModal(
-                                `${account.displayName} 用于 ${getPlatformLabel(
-                                  account.platformId,
-                                )} 的热点洞察和草稿准备。`,
-                              )
-                            }
-                          >
-                            <span>{account.displayName}</span>
-                            <b>{accountStatusLabel[account.status]}</b>
-                          </button>
-                        ))
-                      ) : (
-                        <p>当前平台不强制连接账号，可以先手动导出或继续改写。</p>
-                      )}
-                    </div>
-                    {missingAccountConnections.length ? (
-                      <button
-                        type="button"
-                        className="connect-inline-button"
-                        onClick={() =>
-                          openAccountModal(
-                            "连接账号后，Agent 可以继续准备平台草稿、读取账号可见热点，并避免矩阵内容重复。",
-                          )
-                        }
-                      >
-                        连接缺失账号
-                      </button>
-                    ) : null}
-                  </section>
+                  <MatrixDeliveryPanel
+                    desiredAccountConnections={desiredAccountConnections}
+                    hasMissingAccountConnections={missingAccountConnections.length > 0}
+                    receiverUrl={receiverUrl}
+                    isPublishing={isPublishing}
+                    publishJobsLength={operationPlan.publishJobs.length}
+                    publishResults={publishResults}
+                    getPlatformLabel={getPlatformLabel}
+                    getAccountStatusLabel={(status) => accountStatusLabel[status]}
+                    getPublishResultLabel={(status) => publishResultLabel[status]}
+                    onOpenAccountModal={openAccountModal}
+                    onReceiverUrlChange={setReceiverUrl}
+                    onDeliver={() => {
+                      void deliverPublishPlan();
+                    }}
+                  />
                 </>
               ) : null}
               <section>

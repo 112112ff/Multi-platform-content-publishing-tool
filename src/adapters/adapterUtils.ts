@@ -48,9 +48,9 @@ export const createDraftPublishResult = (
     : undefined,
   message: canPublish
     ? score >= 88
-      ? "模拟发布成功，已生成演示链接。"
-      : "内容已保存为模拟草稿，建议根据体检结果继续优化。"
-    : "发布校验未通过，已拦截本平台模拟发布。",
+      ? "本地发布检查通过，已生成演示链接。"
+      : "内容已保存为本地草稿，建议根据体检结果继续优化。"
+    : "发布校验未通过，已拦截本平台本地发布。",
   createdAt: new Date().toISOString(),
   score,
 });

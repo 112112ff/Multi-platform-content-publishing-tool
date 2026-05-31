@@ -263,7 +263,7 @@ export function PlatformPreviewGrid({
           <section>
             <span className="section-label">发布体检</span>
             <h2>
-              {activePreview.validation.canPublish ? "可进入模拟发布" : "需要处理阻塞项"}
+              {activePreview.validation.canPublish ? "可进入真实投递前检查" : "需要处理阻塞项"}
             </h2>
             {activePreview.validation.issues.length ? (
               <ul className="issue-list">
