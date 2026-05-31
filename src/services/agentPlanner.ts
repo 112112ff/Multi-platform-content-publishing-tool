@@ -1,5 +1,5 @@
-import type { ContentInput } from "../types/content";
 import type { AccountChannel, MatrixPlatformId } from "../integrations/matrixOperationEngine";
+import type { ContentInput } from "../types/content";
 
 export type ProductPlatformId =
   | "wechat"
@@ -28,6 +28,17 @@ export type AgentPlan = {
   content: ContentInput;
   reply: string;
   needsAccount: boolean;
+  source?: "local" | "minimax";
+};
+
+export type RemoteAgentPlan = {
+  platformId?: string;
+  title?: string;
+  body?: string;
+  tags?: string[];
+  reply?: string;
+  coverUrl?: string;
+  videoUrl?: string;
 };
 
 export const platformCatalog: PlatformCatalogItem[] = [
@@ -123,7 +134,10 @@ export const accountChannels: AccountChannel[] = platformCatalog.map((platform) 
       ? "official-oauth"
       : "browser-session",
   canSchedule: true,
-  canAutoUpload: platform.id === "xiaohongshu" || platform.id === "douyin" || platform.id === "bilibili",
+  canAutoUpload:
+    platform.id === "xiaohongshu" ||
+    platform.id === "douyin" ||
+    platform.id === "bilibili",
   dailyPostLimit: platform.id === "weibo" ? 8 : platform.id === "douyin" ? 5 : 3,
 }));
 
@@ -262,6 +276,7 @@ export const buildAgentPlan = (
   return {
     platform,
     needsAccount: true,
+    source: "local",
     content: {
       title,
       body: wantsShort ? body.split("\n\n").slice(0, 3).join("\n\n") : body,
@@ -271,5 +286,35 @@ export const buildAgentPlan = (
       selectedPlatformIds: [platform.id],
     },
     reply: `我判断这次先发 ${platform.name} 最合适，因为它更适合「${platform.promise}」。我已经生成单平台草稿，下一步只需要确认 ${platform.name} 账号已登录，然后点一键发布到平台草稿。`,
+  };
+};
+
+export const buildAgentPlanFromRemote = (
+  remote: RemoteAgentPlan,
+  prompt: string,
+  previousContent?: ContentInput,
+): AgentPlan => {
+  const fallback = buildAgentPlan(prompt, previousContent);
+  const platform = getPlatformById(remote.platformId ?? fallback.platform.id);
+  const tags =
+    Array.isArray(remote.tags) && remote.tags.length
+      ? remote.tags.map((tag) => String(tag)).filter(Boolean).slice(0, 8)
+      : fallback.content.tags;
+
+  return {
+    platform,
+    needsAccount: true,
+    source: "minimax",
+    content: {
+      title: remote.title?.trim() || fallback.content.title,
+      body: remote.body?.trim() || fallback.content.body,
+      tags,
+      coverUrl: remote.coverUrl ?? previousContent?.coverUrl ?? "",
+      videoUrl: remote.videoUrl ?? previousContent?.videoUrl ?? "",
+      selectedPlatformIds: [platform.id],
+    },
+    reply:
+      remote.reply?.trim() ||
+      `MiniMax 已为你生成 ${platform.name} 单平台草稿。确认账号登录后即可进入一键发布。`,
   };
 };

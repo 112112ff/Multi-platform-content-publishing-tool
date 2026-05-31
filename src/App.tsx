@@ -1,13 +1,13 @@
 import { FormEvent, useMemo, useState } from "react";
 import {
   accountChannels,
-  buildAgentPlan,
   getPlatformById,
   platformCatalog,
   type ProductPlatformId,
 } from "./services/agentPlanner";
 import { adaptContentForSelectedPlatforms, type PlatformPreview } from "./services/adaptContent";
 import { buildAgentOperationPlan, type PublishJob } from "./integrations/matrixOperationEngine";
+import { buildAgentPlanWithMiniMax } from "./services/minimaxAgent";
 import { deliverPreviewToReceiver } from "./services/realDelivery";
 import { sendJobsToExtensionBridge } from "./services/extensionBridge";
 import type { ContentInput } from "./types/content";
@@ -81,7 +81,7 @@ function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     createMessage(
       "assistant",
-      "告诉我你想发什么、希望发到哪个平台。我会先帮你判断单个平台，生成草稿，再带你确认账号并一键发布到平台草稿。",
+      "告诉我你想发什么、希望发到哪个平台。我会调用 MiniMax 生成单平台草稿；如果本地没有配置 API key，会自动使用离线规划。",
     ),
   ]);
   const [agentInput, setAgentInput] = useState("");
@@ -92,6 +92,7 @@ function App() {
   const [receiverUrl, setReceiverUrl] = useState("");
   const [showTestReceiver, setShowTestReceiver] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isAgentThinking, setIsAgentThinking] = useState(false);
   const [publishResults, setPublishResults] = useState<DeliveryResult[]>([]);
 
   const activePlatform = getPlatformById(activePlatformId);
@@ -162,35 +163,41 @@ function App() {
     setMessages((current) => [...current, ...newMessages]);
   };
 
-  const applyAgentPrompt = (prompt: string) => {
+  const applyAgentPrompt = async (prompt: string) => {
     const trimmed = prompt.trim();
 
-    if (!trimmed) {
+    if (!trimmed || isAgentThinking) {
       return;
     }
 
-    const plan = buildAgentPlan(trimmed, content);
+    setAgentInput("");
+    setIsAgentThinking(true);
+    pushMessages(
+      createMessage("user", trimmed),
+      createMessage("assistant", "我正在调用 Agent 分析需求、选择平台并生成草稿。"),
+    );
+
+    const plan = await buildAgentPlanWithMiniMax(trimmed, content);
     const platformId = plan.platform.id;
 
-    setAgentInput("");
     setActivePlatformId(platformId);
     setContent(plan.content);
     setPublishResults([]);
     setFlowStep("account");
     setAccountModalOpen(true);
+    setIsAgentThinking(false);
     pushMessages(
-      createMessage("user", trimmed),
       createMessage("assistant", plan.reply),
       createMessage(
         "assistant",
-        `我只为你打开 ${plan.platform.name} 的账号确认，不会一次弹出六个平台。确认你已登录后，右侧会变成一键发布流程。`,
+        `${plan.source === "minimax" ? "MiniMax Agent 已生成草稿" : "当前未连接 MiniMax，已使用本地 Agent 生成草稿"}。我只为你打开 ${plan.platform.name} 的账号确认，不会一次弹出六个平台。`,
       ),
     );
   };
 
   const submitPrompt = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    applyAgentPrompt(agentInput);
+    void applyAgentPrompt(agentInput);
   };
 
   const confirmAccount = () => {
@@ -280,7 +287,7 @@ function App() {
         "assistant",
         results.some((result) => result.status === "success")
           ? `已把 ${activePlatform.name} 草稿发送给浏览器扩展。请在打开的官方创作页里做最终确认。`
-          : `没有检测到可用的浏览器扩展。你可以先安装 extension 目录里的 Publisher Bridge，或用下方测试接收端验证真实投递。`,
+          : "没有检测到可用的浏览器扩展。你可以先安装 extension 目录里的 Publisher Bridge，或用下方测试接收端验证真实投递。",
       ),
     );
   };
@@ -332,9 +339,9 @@ function App() {
         <div className="brand-row">
           <div>
             <span>ContentBridge</span>
-            <h1>说一句话，发布助理帮你走完单平台发布流程</h1>
+            <h1>说一句话，MiniMax 发布助理帮你走完单平台发布流程</h1>
           </div>
-          <strong>{cleanPreview ? activePlatform.name : "Agent 发布助理"}</strong>
+          <strong>{cleanPreview ? activePlatform.name : "MiniMax Agent"}</strong>
         </div>
 
         <div className="agent-layout">
@@ -356,7 +363,12 @@ function App() {
 
             <div className="quick-prompt-row">
               {quickPrompts.map((prompt) => (
-                <button type="button" key={prompt} onClick={() => applyAgentPrompt(prompt)}>
+                <button
+                  type="button"
+                  key={prompt}
+                  disabled={isAgentThinking}
+                  onClick={() => void applyAgentPrompt(prompt)}
+                >
                   {prompt}
                 </button>
               ))}
@@ -369,7 +381,9 @@ function App() {
                 placeholder="例如：帮我写一篇小红书笔记，主题是 AI 工具提升学习效率，语气真实一点"
                 rows={4}
               />
-              <button type="submit">让 Agent 生成发布流程</button>
+              <button type="submit" disabled={isAgentThinking}>
+                {isAgentThinking ? "Agent 生成中..." : "让 MiniMax Agent 生成发布流程"}
+              </button>
             </form>
           </aside>
 
@@ -382,8 +396,9 @@ function App() {
                     <button
                       type="button"
                       key={platform.id}
+                      disabled={isAgentThinking}
                       onClick={() =>
-                        applyAgentPrompt(`帮我生成${platform.name}内容，主题是 AI 工具提升学习效率`)
+                        void applyAgentPrompt(`帮我生成${platform.name}内容，主题是 AI 工具提升学习效率`)
                       }
                     >
                       <b>{platform.name}</b>

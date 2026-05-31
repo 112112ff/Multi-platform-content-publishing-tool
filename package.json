@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:agent": "node scripts/dev-with-agent.mjs",
+    "agent:proxy": "node scripts/minimax-proxy.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test:run": "vitest run"

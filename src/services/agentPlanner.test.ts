@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAgentPlan, inferPlatform } from "./agentPlanner";
+import { buildAgentPlan, buildAgentPlanFromRemote, inferPlatform } from "./agentPlanner";
 
 describe("agentPlanner", () => {
   it("selects a single platform from the user prompt", () => {
@@ -15,5 +15,23 @@ describe("agentPlanner", () => {
     expect(plan.content.selectedPlatformIds).toEqual(["zhihu"]);
     expect(plan.content.title).toContain("AI 工具提升学习效率");
     expect(plan.reply).toContain("知乎");
+  });
+
+  it("merges MiniMax JSON into a safe single-platform plan", () => {
+    const plan = buildAgentPlanFromRemote(
+      {
+        platformId: "douyin",
+        title: "3 个提升发布效率的方法",
+        body: "第一步，先确定平台。\n\n第二步，改写内容。\n\n第三步，确认发布。",
+        tags: ["短视频", "内容创作"],
+        reply: "MiniMax 建议先发抖音，因为用户需要口播脚本。",
+      },
+      "做一个抖音口播脚本",
+    );
+
+    expect(plan.source).toBe("minimax");
+    expect(plan.platform.id).toBe("douyin");
+    expect(plan.content.selectedPlatformIds).toEqual(["douyin"]);
+    expect(plan.content.tags).toEqual(["短视频", "内容创作"]);
   });
 });

@@ -1,0 +1,73 @@
+# MiniMax Agent 接入说明
+
+本项目已把 MiniMax 接入到左侧 Agent 主流程。用户输入一句话后，前端会调用本地 Agent 代理服务，代理再请求 MiniMax Chat Completions API，并返回单平台发布计划。
+
+## 为什么需要本地代理
+
+MiniMax API key 不能写进前端代码，也不能提交到 GitHub。前端页面会被浏览器下载，任何写在页面里的 key 都会暴露。
+
+因此项目采用：
+
+```txt
+Browser UI
+  -> http://127.0.0.1:8787/api/agent-plan
+  -> scripts/minimax-proxy.mjs
+  -> https://api.minimax.io/v1/chat/completions
+  -> MiniMax JSON plan
+  -> Browser UI
+```
+
+如果代理没有启动，或本地没有配置 `MINIMAX_API_KEY`，前端会自动降级到本地 Agent 规则，项目仍然可以演示。
+
+## 本地启动方式
+
+1. 复制环境变量模板：
+
+```bash
+cp .env.example .env
+```
+
+2. 在 `.env` 中填写自己的 MiniMax key：
+
+```env
+MINIMAX_API_KEY=你的 MiniMax API Key
+MINIMAX_MODEL=MiniMax-M2.7
+MINIMAX_API_URL=https://api.minimax.io/v1/chat/completions
+MINIMAX_PROXY_PORT=8787
+VITE_AGENT_API_URL=http://127.0.0.1:8787/api/agent-plan
+```
+
+3. 启动带 Agent 代理的开发环境：
+
+```bash
+npm run dev:agent
+```
+
+也可以分两个终端启动：
+
+```bash
+npm run agent:proxy
+npm run dev
+```
+
+## Agent 返回格式
+
+MiniMax 被要求只返回 JSON：
+
+```json
+{
+  "platformId": "xiaohongshu",
+  "title": "平台化标题",
+  "body": "平台化正文",
+  "tags": ["标签1", "标签2"],
+  "reply": "为什么选择这个平台，以及下一步做什么"
+}
+```
+
+前端会校验 `platformId`，并合并成本项目统一的 `AgentPlan`。不支持的平台会回退到本地 Agent。
+
+## 安全要求
+
+- 不要把真实 API key 写进源码。
+- 不要提交 `.env`。
+- 如果 key 曾经出现在聊天、截图、公开仓库或 PR 描述中，应立即去 MiniMax 控制台作废并重新生成。
