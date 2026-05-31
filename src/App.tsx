@@ -350,7 +350,7 @@ function App() {
     });
     const hasExtensionSuccess = results.some((result) => result.status === "success");
     const fallbackResult = hasExtensionSuccess ? null : await openPlatformCreatorPage();
-    const nextResults = fallbackResult ? [fallbackResult, ...results] : results;
+    const nextResults = fallbackResult ? [fallbackResult] : results;
 
     setPublishResults(nextResults);
     setIsPublishing(false);
@@ -359,8 +359,8 @@ function App() {
       createMessage(
         "assistant",
         hasExtensionSuccess
-          ? `已把 ${activePlatform.name} 草稿发送给浏览器扩展。请在打开的官方创作页里做最终确认。`
-          : `没有检测到可用的浏览器扩展，我已改为打开 ${activePlatform.name} 官方创作页并准备草稿。最终发布仍由你在官方页面确认。`,
+          ? `已把 ${activePlatform.name} 草稿送到官方创作页。请在打开的页面里做最终确认。`
+          : `已打开 ${activePlatform.name} 官方创作页，并在本页准备好草稿。最终发布仍由你在官方页面确认。`,
       ),
     );
   };
