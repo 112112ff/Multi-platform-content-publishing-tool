@@ -52,9 +52,9 @@ npm run test:run
 - 使用本地测试接收端跑全平台投递，收到 6 个真实 POST，平台分别为 zhihu、bilibili、xiaohongshu、douyin、wechat、weibo。
 - UI 显示“真实投递完成：共 6 个任务”。
 
-## 分工说明
+## 备注
 
-- Codex：实现 Agent 引导流程、账号确认门槛、发布任务修复、测试补充和浏览器验收。
+- 分工说明：Codex 实现 Agent 引导流程、账号确认门槛、发布任务修复、测试补充和浏览器验收。
 - 队友可继续在后续 PR 中补充平台扩展、Demo 视频、README 最终截图和路演材料。
 
 ## 能力边界
