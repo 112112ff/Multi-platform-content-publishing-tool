@@ -694,49 +694,32 @@ function App() {
 
         <div className="agent-layout">
           <aside className="agent-conversation">
-            <div className={`agent-runtime-status ${agentStatus.mode}`}>
-              <b>
-                {agentStatus.mode === "connected"
-                  ? "发布助理已增强"
-                  : agentStatus.mode === "key-missing"
-                    ? "离线规则可用"
-                    : "离线规则模式"}
-              </b>
-              <p>{agentStatus.message}</p>
-            </div>
+            <div className="agent-topbar">
+              <div className={`agent-runtime-status ${agentStatus.mode}`}>
+                <b>
+                  {agentStatus.mode === "connected"
+                    ? "发布助理已增强"
+                    : agentStatus.mode === "key-missing"
+                      ? "离线规则可用"
+                      : "离线规则模式"}
+                </b>
+                <p>{agentStatus.message}</p>
+              </div>
 
-            <div className="agent-status">
-              <span className={stepState("idle")}>输入内容</span>
-              <span className={stepState("publish")}>平台适配</span>
-              <span className={stepState("done")}>发布队列</span>
-            </div>
-
-            <div className="chat-stream" aria-live="polite">
-              {messages.map((message) => (
-                <article className={`chat-bubble ${message.role}`} key={message.id}>
-                  <b>{message.role === "assistant" ? "发布助理" : "你"}</b>
-                  <p>{message.text}</p>
-                </article>
-              ))}
-            </div>
-
-            <div className="quick-prompt-row">
-              {quickPrompts.map((prompt) => (
-                <button
-                  type="button"
-                  key={prompt}
-                  disabled={isAgentThinking}
-                  onClick={() => void applyAgentPrompt(prompt)}
-                >
-                  {prompt}
-                </button>
-              ))}
+              <div className="agent-status">
+                <span className={stepState("idle")}>输入内容</span>
+                <span className={stepState("publish")}>平台适配</span>
+                <span className={stepState("done")}>发布队列</span>
+              </div>
             </div>
 
             <div className="source-draft-panel" aria-label="原文粘贴区">
-              <div>
-                <span>原文 / 已有草稿</span>
-                <b>把用户已有内容粘贴进来，系统会先识别标题、正文和标签，再做平台化改写</b>
+              <div className="section-heading">
+                <small>1</small>
+                <div>
+                  <span>原文 / 已有草稿</span>
+                  <b>把用户已有内容粘贴进来，系统会先识别标题、正文和标签，再做平台化改写</b>
+                </div>
               </div>
               <textarea
                 value={sourceText}
@@ -766,9 +749,12 @@ function App() {
             </div>
 
             <div className="brief-panel" aria-label="发布需求确认">
-              <div>
-                <span>发布 Brief</span>
-                <b>先确认主题、表达和受众，再生成多平台版本</b>
+              <div className="section-heading">
+                <small>2</small>
+                <div>
+                  <span>发布 Brief</span>
+                  <b>先确认主题、表达和受众，再生成多平台版本</b>
+                </div>
               </div>
               <label>
                 主题
@@ -823,6 +809,13 @@ function App() {
             </div>
 
             <div className="preference-panel" aria-label="发布偏好">
+              <div className="section-heading compact">
+                <small>3</small>
+                <div>
+                  <span>发布偏好</span>
+                  <b>选择长度、语气和热点使用方式</b>
+                </div>
+              </div>
               <label>
                 长度
                 <select
@@ -887,16 +880,53 @@ function App() {
             </div>
 
             <form className="agent-input-card" onSubmit={submitPrompt}>
+              <div className="section-heading compact">
+                <small>4</small>
+                <div>
+                  <span>补充要求</span>
+                  <b>告诉发布助理要更口语、更专业，或指定某个平台重点优化</b>
+                </div>
+              </div>
               <textarea
                 value={agentInput}
                 onChange={(event) => setAgentInput(event.target.value)}
-                placeholder="例如：帮我写一篇小红书笔记，主题是 AI 工具提升学习效率，语气真实一点"
+                placeholder="例如：保留原文观点，语气更像真实经验分享；小红书更轻松，知乎更专业"
                 rows={4}
               />
+              <div className="quick-prompt-row" aria-label="示例补充要求">
+                {quickPrompts.map((prompt) => (
+                  <button
+                    type="button"
+                    key={prompt}
+                    disabled={isAgentThinking}
+                    onClick={() => void applyAgentPrompt(prompt)}
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
               <button type="submit" disabled={isAgentThinking}>
                 {isAgentThinking ? "生成中..." : "补充需求并更新 Brief"}
               </button>
             </form>
+
+            <div className="assistant-log-card">
+              <div className="section-heading compact">
+                <small>记录</small>
+                <div>
+                  <span>对话记录</span>
+                  <b>只保留生成反馈和你的补充要求，避免干扰主流程</b>
+                </div>
+              </div>
+              <div className="chat-stream" aria-live="polite">
+                {messages.map((message) => (
+                  <article className={`chat-bubble ${message.role}`} key={message.id}>
+                    <b>{message.role === "assistant" ? "发布助理" : "你"}</b>
+                    <p>{message.text}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
           </aside>
 
           <section className="publish-flow-panel" aria-label="多平台发布包">

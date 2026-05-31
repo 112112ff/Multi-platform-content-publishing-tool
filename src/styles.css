@@ -1837,7 +1837,12 @@ p {
 .agent-conversation {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 0.75rem;
+}
+
+.agent-topbar {
+  display: grid;
+  gap: 0.55rem;
 }
 
 .agent-status {
@@ -1912,21 +1917,30 @@ p {
   color: #ffffff;
 }
 
+.assistant-log-card {
+  background: #f8fbfb;
+  border: 1px solid #d7e1e4;
+  border-radius: 14px;
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.75rem;
+}
+
 .chat-stream {
   display: flex;
-  flex: 1;
   flex-direction: column;
-  gap: 0.75rem;
-  min-height: 280px;
+  gap: 0.55rem;
+  max-height: 220px;
+  min-height: 0;
   overflow: auto;
   padding-right: 0.2rem;
 }
 
 .chat-bubble {
   border: 1px solid #d9e4e7;
-  border-radius: 14px;
+  border-radius: 12px;
   max-width: 92%;
-  padding: 0.8rem 0.9rem;
+  padding: 0.68rem 0.78rem;
 }
 
 .chat-bubble b {
@@ -1959,7 +1973,7 @@ p {
 
 .quick-prompt-row {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 .quick-prompt-row button,
@@ -2017,20 +2031,51 @@ p {
   padding: 0.8rem;
 }
 
-.brief-panel > div:first-child {
+.section-heading {
+  align-items: start;
   display: grid;
-  gap: 0.25rem;
+  gap: 0.55rem;
+  grid-template-columns: auto 1fr;
+}
+
+.section-heading.compact {
+  grid-column: 1 / -1;
+}
+
+.section-heading small {
+  align-items: center;
+  background: #17383f;
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 950;
+  height: 1.65rem;
+  justify-content: center;
+  min-width: 1.65rem;
+  padding: 0 0.42rem;
+}
+
+.section-heading > div {
+  display: grid;
+  gap: 0.2rem;
 }
 
 .brief-panel span,
-.source-draft-panel span {
+.source-draft-panel span,
+.preference-panel span,
+.agent-input-card span,
+.assistant-log-card span {
   color: #0e6b5f;
   font-size: 0.78rem;
   font-weight: 950;
 }
 
 .brief-panel b,
-.source-draft-panel b {
+.source-draft-panel b,
+.preference-panel b,
+.agent-input-card b,
+.assistant-log-card b {
   color: #243239;
   line-height: 1.45;
 }
@@ -2150,7 +2195,7 @@ p {
   min-height: 108px;
 }
 
-.agent-input-card button,
+.agent-input-card > button,
 .primary-publish-button,
 .receiver-box button,
 .modal-action-row button,
@@ -2168,7 +2213,7 @@ p {
     transform 0.16s ease;
 }
 
-.agent-input-card button:hover,
+.agent-input-card > button:hover,
 .primary-publish-button:hover,
 .receiver-box button:hover,
 .modal-action-row button:hover,
@@ -2177,7 +2222,7 @@ p {
   transform: translateY(-1px);
 }
 
-.agent-input-card button:disabled,
+.agent-input-card > button:disabled,
 .primary-publish-button:disabled,
 .receiver-box button:disabled {
   background: #9eb4b7;
