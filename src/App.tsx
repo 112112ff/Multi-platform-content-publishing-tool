@@ -301,6 +301,8 @@ const cleanTopic = (value: string) =>
     .replace(/^(把|将|给|做|写|生成|准备|一篇|一个|一下)+/g, "")
     .replace(/(的|地|得|文案|内容|文章|草稿|版本|页面|预览|右侧预览)$/g, "")
     .replace(/^(这个|那个|当前|现在)/g, "")
+    .replace(/(^|\s)(和|与|及|以及|、)(\s|$)/g, " ")
+    .replace(/(和|与|及|以及|、)$/g, "")
     .trim();
 
 const getTopic = (command: string) => {
@@ -439,10 +441,24 @@ function App() {
         : null,
     [connectedAccounts, content, hasContent],
   );
+  const selectedPlatformSet = useMemo(
+    () => new Set(content.selectedPlatformIds),
+    [content.selectedPlatformIds],
+  );
   const desiredAccountConnections = useMemo(() => {
-    const selected = new Set(content.selectedPlatformIds);
-    return connectedAccounts.filter((account) => selected.has(account.platformId));
-  }, [connectedAccounts, content.selectedPlatformIds]);
+    return connectedAccounts.filter((account) =>
+      selectedPlatformSet.has(account.platformId),
+    );
+  }, [connectedAccounts, selectedPlatformSet]);
+  const modalAccounts = useMemo(
+    () =>
+      [...connectedAccounts].sort(
+        (left, right) =>
+          Number(selectedPlatformSet.has(right.platformId)) -
+          Number(selectedPlatformSet.has(left.platformId)),
+      ),
+    [connectedAccounts, selectedPlatformSet],
+  );
   const missingAccountConnections = desiredAccountConnections.filter(
     (account) => account.status !== "connected",
   );
@@ -1191,13 +1207,21 @@ function App() {
             <h3 id="account-modal-title">确认平台登录状态</h3>
             <strong>{accountModalReason}</strong>
             <div className="account-modal-grid">
-              {connectedAccounts.map((account) => (
+              {modalAccounts.map((account) => (
                 <article
                   key={account.id}
-                  className={account.status === "connected" ? "connected" : ""}
+                  className={[
+                    account.status === "connected" ? "connected" : "",
+                    selectedPlatformSet.has(account.platformId) ? "target" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                 >
                   <div>
                     <span>{getPlatformLabel(account.platformId)}</span>
+                    {selectedPlatformSet.has(account.platformId) ? (
+                      <em>本次需要</em>
+                    ) : null}
                     <b>{accountStatusLabel[account.status]}</b>
                   </div>
                   <h4>{account.displayName}</h4>

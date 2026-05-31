@@ -1487,6 +1487,11 @@ p {
   border-color: #b9dfcf;
 }
 
+.account-modal-grid article.target {
+  border-color: #78c2bf;
+  box-shadow: inset 3px 0 0 #0b6f78;
+}
+
 .account-modal-grid article > div {
   align-items: center;
   display: flex;
@@ -1498,6 +1503,17 @@ p {
   color: #0b6f78;
   font-size: 0.78rem;
   font-weight: 950;
+}
+
+.account-modal-grid em {
+  background: #e6f6f4;
+  border-radius: 999px;
+  color: #0b6f78;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 950;
+  padding: 0.22rem 0.45rem;
 }
 
 .account-modal-grid b {

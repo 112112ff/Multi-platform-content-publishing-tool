@@ -302,14 +302,30 @@ export const createPublishJobs = (
     };
   });
 
+const dedupeAccounts = (accounts: AccountChannel[]) => {
+  const seen = new Set<string>();
+
+  return accounts.filter((account) => {
+    if (seen.has(account.id)) {
+      return false;
+    }
+
+    seen.add(account.id);
+    return true;
+  });
+};
+
 export const buildAgentOperationPlan = (
   content: ContentInput,
   accounts: AccountChannel[] = demoAccountChannels,
 ): AgentOperationPlan => {
   const matchedAccounts = selectAccountChannels(content, accounts);
+  const selectedAccounts = accounts.filter((account) =>
+    content.selectedPlatformIds.includes(account.platformId),
+  );
   const fallbackAccounts = matchedAccounts.length
-    ? matchedAccounts
-    : accounts.filter((account) => content.selectedPlatformIds.includes(account.platformId));
+    ? dedupeAccounts([...matchedAccounts, ...selectedAccounts])
+    : selectedAccounts;
   const targetAccounts = fallbackAccounts.length ? fallbackAccounts : accounts.slice(0, 3);
   const hotspotTasks = buildHotspotCrawlPlan(content, targetAccounts);
 

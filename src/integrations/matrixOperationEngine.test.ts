@@ -56,4 +56,18 @@ describe("matrix operation engine", () => {
     ]);
     expect(plan.guardrails.join("")).toContain("不直接发布");
   });
+
+  it("keeps every explicitly selected platform in the publish plan", () => {
+    const plan = buildAgentOperationPlan({
+      ...content,
+      title: "真实体验：学习工具使用心得",
+      body: "这是一篇偏小红书真实体验的内容，但用户也要求同步发到知乎。",
+      selectedPlatformIds: ["xiaohongshu", "zhihu"],
+    });
+
+    expect(plan.publishJobs.map((job) => job.platformId)).toEqual([
+      "xiaohongshu",
+      "zhihu",
+    ]);
+  });
 });
