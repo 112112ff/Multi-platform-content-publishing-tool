@@ -5,7 +5,7 @@ ContentBridge 是一个面向创作者的多平台内容发布工具 MVP，对�
 ## Demo 视频
 
 ```txt
-提交前请替换为可播放的 B 站、网盘或公开视频链接。
+ https://pan.baidu.com/s/1d2PR-AmixOXYD_UT7NcJSg?pwd=1234 
 ```
 
 线上体验地址：
