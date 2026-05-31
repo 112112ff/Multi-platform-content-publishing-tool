@@ -141,14 +141,20 @@ const createAccountState = (): ConnectedAccount[] =>
   });
 
 const accountStatusLabel: Record<ConnectedAccount["status"], string> = {
-  connected: "已连接",
-  disconnected: "待连接",
+  connected: "已确认",
+  disconnected: "待确认",
 };
 
 const publishResultLabel: Record<DeliveryResult["status"], string> = {
   success: "已实发",
   failed: "投递失败",
   blocked: "待处理",
+};
+
+const authModeLabel: Record<AccountChannel["authMode"], string> = {
+  "official-oauth": "官方授权",
+  "browser-session": "浏览器登录态",
+  "cookie-vault": "安全登录态",
 };
 
 const getPlatformLabel = (platformId: string) =>
@@ -446,6 +452,36 @@ function App() {
           previews.length,
       )
     : 0;
+  const workflowSteps = [
+    {
+      label: "说出需求",
+      detail: "用一句话告诉 Agent 主题、平台和语气",
+      state: hasContent ? "done" : "active",
+    },
+    {
+      label: "生成版本",
+      detail: "自动改写成各平台标题、正文和标签",
+      state: hasContent ? "active" : "waiting",
+    },
+    {
+      label: "确认登录",
+      detail: missingAccountConnections.length
+        ? `还差 ${missingAccountConnections.length} 个平台确认登录`
+        : "平台草稿发送条件已就绪",
+      state: !hasContent
+        ? "waiting"
+        : missingAccountConnections.length
+          ? "active"
+          : "done",
+    },
+    {
+      label: "发送草稿",
+      detail: publishResults.length
+        ? "已生成投递反馈"
+        : "测试接收端实发或扩展打开创作页",
+      state: publishResults.length ? "done" : "waiting",
+    },
+  ];
 
   const updateContentFromAgent = (command: string) => {
     const nextContent = buildDraftFromCommand(command, content);
@@ -477,13 +513,13 @@ function App() {
       createMessage(
         "assistant",
         `我已经按你的要求更新右侧预览。当前会生成 ${selectedNames || "默认平台"} 版本${
-          needsAccount ? "，其中部分平台连接账号后可以继续做热点洞察和草稿准备" : ""
+          needsAccount ? "，发送到平台创作页前需要先确认对应平台已登录" : ""
         }。你可以继续告诉我“更短一点”“更像小红书”“标题更抓人”。`,
       ),
     ]);
     if (needsAccount) {
       setAccountModalReason(
-        "这次选择的平台里包含需要登录态的平台。连接账号后，Agent 可以用用户授权范围内的可见信号做热点洞察和草稿准备。",
+        "这次选择的平台需要先确认你已经在浏览器登录。确认后才能把草稿发送到平台创作页；Webhook 实发不受影响。",
       );
       setAccountModalOpen(true);
     }
@@ -505,6 +541,8 @@ function App() {
   };
 
   const connectAccount = (accountId: string) => {
+    const targetAccount = connectedAccounts.find((account) => account.id === accountId);
+
     setConnectedAccounts((current) =>
       current.map((account) =>
         account.id === accountId
@@ -516,9 +554,21 @@ function App() {
           : account,
       ),
     );
+
+    if (targetAccount) {
+      setMessages((current) => [
+        ...current,
+        createMessage(
+          "assistant",
+          `${getPlatformLabel(targetAccount.platformId)} 已确认登录。现在可以把该平台草稿发送到浏览器扩展，由扩展打开创作页并尝试填充内容。`,
+        ),
+      ]);
+    }
   };
 
   const disconnectAccount = (accountId: string) => {
+    const targetAccount = connectedAccounts.find((account) => account.id === accountId);
+
     setConnectedAccounts((current) =>
       current.map((account) =>
         account.id === accountId
@@ -530,6 +580,16 @@ function App() {
           : account,
       ),
     );
+
+    if (targetAccount) {
+      setMessages((current) => [
+        ...current,
+        createMessage(
+          "assistant",
+          `${getPlatformLabel(targetAccount.platformId)} 已取消登录确认。发送到浏览器扩展前需要重新确认。`,
+        ),
+      ]);
+    }
   };
 
   const openAccountModal = (reason: string) => {
@@ -565,7 +625,7 @@ function App() {
         ...current,
         createMessage(
           "assistant",
-          "我没有执行发布，因为真实投递地址为空。请填入 webhook.site、自建后端或自动化服务的接收 URL。",
+          "我没有执行发布，因为接收地址为空。请填入 webhook.site 生成的临时地址、自建后端或自动化服务的接收 URL。",
         ),
       ]);
       setIsPublishing(false);
@@ -621,6 +681,44 @@ function App() {
 
   const deliverViaExtensionBridge = async () => {
     if (!operationPlan || !operationPlan.publishJobs.length) {
+      return;
+    }
+
+    if (missingAccountConnections.length) {
+      const createdAt = new Date().toISOString();
+      const blockedResults = operationPlan.publishJobs.map((job) => {
+        const account = connectedAccounts.find((item) => item.id === job.accountId);
+        const needsLogin = account?.status !== "connected";
+
+        return {
+          id: `${job.id}-${Date.now()}`,
+          platformId: job.platformId,
+          accountName: account?.displayName ?? getPlatformLabel(job.platformId),
+          status: "blocked" as const,
+          executionRoute: "browser-extension",
+          message: needsLogin
+            ? "发送到平台创作页前，需要先确认该平台已经在浏览器完成登录。"
+            : "等待其他目标平台确认登录后统一发送。",
+          createdAt,
+          receiverUrl: "ContentBridge Extension",
+        };
+      });
+      const missingNames = missingAccountConnections
+        .map((account) => getPlatformLabel(account.platformId))
+        .join("、");
+
+      setPublishResults(blockedResults);
+      setAccountModalReason(
+        `发送到浏览器扩展前，请先确认这些平台已在浏览器登录：${missingNames}。如果只是验证投递链路，可以继续使用测试接收地址。`,
+      );
+      setAccountModalOpen(true);
+      setMessages((current) => [
+        ...current,
+        createMessage(
+          "assistant",
+          `我先暂停发送草稿，因为 ${missingNames} 还没有确认登录。确认后再点“发送到浏览器扩展”，我会继续打开平台创作页。`,
+        ),
+      ]);
       return;
     }
 
@@ -692,14 +790,14 @@ function App() {
         className="account-dock"
         onClick={() =>
           openAccountModal(
-            "连接自媒体账号后，Agent 可以在用户授权范围内读取热点、准备草稿，并给矩阵账号生成不同发布任务。",
+            "这里不会保存账号密码，只记录你是否已经在浏览器完成平台登录。确认后才能把草稿发送到浏览器扩展。",
           )
         }
       >
-        <span>平台账号</span>
+        <span>发布账号</span>
         <b>
           {connectedAccounts.filter((account) => account.status === "connected").length}/
-          {connectedAccounts.length} 已连接
+          {connectedAccounts.length} 已确认
         </b>
       </button>
 
@@ -747,6 +845,18 @@ function App() {
             </div>
           ) : null}
         </header>
+
+        {hasContent ? (
+          <div className="flow-guide" aria-label="发布流程">
+            {workflowSteps.map((step, index) => (
+              <div className={step.state} key={step.label}>
+                <span>{index + 1}</span>
+                <strong>{step.label}</strong>
+                <p>{step.detail}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         {hasContent ? (
           <div className="platform-tabs" aria-label="平台切换">
@@ -1014,7 +1124,7 @@ function App() {
                   </section>
                   <MatrixDeliveryPanel
                     desiredAccountConnections={desiredAccountConnections}
-                    hasMissingAccountConnections={missingAccountConnections.length > 0}
+                    missingAccountConnections={missingAccountConnections}
                     receiverUrl={receiverUrl}
                     isPublishing={isPublishing}
                     publishJobsLength={operationPlan.publishJobs.length}
@@ -1077,8 +1187,8 @@ function App() {
             >
               ×
             </button>
-            <p className="eyebrow">Account Connector</p>
-            <h3 id="account-modal-title">连接自媒体账号能力</h3>
+            <p className="eyebrow">发布账号</p>
+            <h3 id="account-modal-title">确认平台登录状态</h3>
             <strong>{accountModalReason}</strong>
             <div className="account-modal-grid">
               {connectedAccounts.map((account) => (
@@ -1094,7 +1204,7 @@ function App() {
                   <p>{account.persona}</p>
                   <ul>
                     <li>受众：{account.audience}</li>
-                    <li>授权方式：{account.authMode}</li>
+                    <li>连接方式：{authModeLabel[account.authMode]}</li>
                     <li>日发布上限：{account.dailyPostLimit} 条</li>
                   </ul>
                   <div className="account-action-row">
@@ -1110,7 +1220,7 @@ function App() {
                               "assistant",
                               `已为你打开 ${getPlatformLabel(
                                 account.platformId,
-                              )} 的登录/创作入口。登录完成后回到这里点“已完成登录”，我会继续做热点洞察和草稿准备。`,
+                              )} 的登录/创作入口。登录完成后回到这里点“确认已登录”，我才会把草稿发送到浏览器扩展。`,
                             ),
                           ]);
                         }
@@ -1124,7 +1234,7 @@ function App() {
                       </button>
                     ) : (
                       <button type="button" onClick={() => connectAccount(account.id)}>
-                        已完成登录
+                        确认已登录
                       </button>
                     )}
                   </div>

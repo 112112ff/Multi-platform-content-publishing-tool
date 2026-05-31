@@ -244,6 +244,68 @@ p {
   padding-bottom: 0.9rem;
 }
 
+.flow-guide {
+  border: 1px dashed #aec2c8;
+  border-radius: 10px;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 0.75rem;
+}
+
+.flow-guide div {
+  background: #f8fbfb;
+  border: 1px solid #dfe8ea;
+  border-radius: 8px;
+  display: grid;
+  gap: 0.28rem;
+  min-width: 0;
+  padding: 0.65rem;
+}
+
+.flow-guide div.active {
+  background: #eef8f7;
+  border-color: #7cc6c2;
+}
+
+.flow-guide div.done {
+  background: #eef9f4;
+  border-color: #b9dfcf;
+}
+
+.flow-guide span {
+  align-items: center;
+  background: #172026;
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 950;
+  height: 1.35rem;
+  justify-content: center;
+  width: 1.35rem;
+}
+
+.flow-guide div.done span {
+  background: #116944;
+}
+
+.flow-guide div.active span {
+  background: #0b6f78;
+}
+
+.flow-guide strong {
+  color: #172026;
+  line-height: 1.25;
+}
+
+.flow-guide p {
+  color: #60747a;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
 .preview-header h2 {
   font-size: 1.55rem;
   line-height: 1.25;
@@ -395,6 +457,17 @@ p {
   margin-bottom: 0.42rem;
 }
 
+.matrix-plan-hint {
+  background: #f6fafb;
+  border: 1px solid #dbe7ea;
+  border-radius: 8px;
+  color: #526970;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 0 0 0.65rem;
+  padding: 0.65rem;
+}
+
 .preview-insight p,
 .preview-insight li {
   color: #53666b;
@@ -474,6 +547,37 @@ p {
   color: #116944;
 }
 
+.account-warning {
+  background: #fff6f2;
+  border: 1px solid #f1c4b2;
+  border-radius: 8px;
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.7rem;
+  padding: 0.68rem;
+}
+
+.account-warning p,
+.account-ready {
+  font-size: 0.82rem;
+  font-weight: 850;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.account-warning p {
+  color: #8a351f;
+}
+
+.account-ready {
+  background: #eef9f4;
+  border: 1px solid #b9dfcf;
+  border-radius: 8px;
+  color: #116944;
+  margin-top: 0.7rem;
+  padding: 0.65rem;
+}
+
 .connect-inline-button {
   background: #0b6f78;
   border-radius: 8px;
@@ -528,6 +632,10 @@ p {
   margin-top: 0.5rem;
   padding: 0.78rem 0.9rem;
   width: 100%;
+}
+
+.extension-delivery-button.needs-account {
+  background: #8a351f;
 }
 
 .extension-delivery-button:disabled {
@@ -1567,6 +1675,10 @@ p {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .flow-guide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .inspiration-grid,
   .inspiration-hero {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1599,6 +1711,11 @@ p {
 
   .agent-heading h1 {
     font-size: 1.55rem;
+  }
+
+  .flow-guide,
+  .platform-tabs {
+    grid-template-columns: 1fr;
   }
 
   .chat-box,

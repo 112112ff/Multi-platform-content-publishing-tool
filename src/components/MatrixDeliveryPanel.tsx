@@ -2,7 +2,7 @@ import type { ConnectedAccount, DeliveryResult } from "../types/delivery";
 
 interface MatrixDeliveryPanelProps {
   desiredAccountConnections: ConnectedAccount[];
-  hasMissingAccountConnections: boolean;
+  missingAccountConnections: ConnectedAccount[];
   receiverUrl: string;
   isPublishing: boolean;
   publishJobsLength: number;
@@ -18,7 +18,7 @@ interface MatrixDeliveryPanelProps {
 
 export function MatrixDeliveryPanel({
   desiredAccountConnections,
-  hasMissingAccountConnections,
+  missingAccountConnections,
   receiverUrl,
   isPublishing,
   publishJobsLength,
@@ -31,9 +31,14 @@ export function MatrixDeliveryPanel({
   onDeliver,
   onDeliverToExtension,
 }: MatrixDeliveryPanelProps) {
+  const hasMissingAccountConnections = missingAccountConnections.length > 0;
+
   return (
     <section className="matrix-plan-card">
       <h3>账号矩阵任务</h3>
+      <p className="matrix-plan-hint">
+        填测试接收地址可以验证真实投递；发送到平台创作页前，需要先确认对应平台已在浏览器登录。
+      </p>
       <div className="account-mini-list">
         {desiredAccountConnections.length ? (
           desiredAccountConnections.map((account) => (
@@ -58,24 +63,34 @@ export function MatrixDeliveryPanel({
         )}
       </div>
       {hasMissingAccountConnections ? (
-        <button
-          type="button"
-          className="connect-inline-button"
-          onClick={() =>
-            onOpenAccountModal(
-              "连接账号后，Agent 可以继续准备平台草稿、读取账号可见热点，并避免矩阵内容重复。",
-            )
-          }
-        >
-          连接缺失账号
-        </button>
-      ) : null}
+        <div className="account-warning">
+          <p>
+            还差 {missingAccountConnections.length} 个平台确认登录：
+            {missingAccountConnections
+              .map((account) => getPlatformLabel(account.platformId))
+              .join("、")}
+          </p>
+          <button
+            type="button"
+            className="connect-inline-button"
+            onClick={() =>
+              onOpenAccountModal(
+                "确认平台登录后，浏览器扩展才能打开创作页并填充草稿。这里不会保存账号密码。",
+              )
+            }
+          >
+            去确认登录
+          </button>
+        </div>
+      ) : (
+        <p className="account-ready">目标平台已确认登录，可以发送到浏览器扩展。</p>
+      )}
       <label className="real-delivery-field">
-        真实投递接收端
+        测试接收地址（可选）
         <input
           value={receiverUrl}
           onChange={(event) => onReceiverUrlChange(event.target.value)}
-          placeholder="https://webhook.site/... 或你的后端接收 URL"
+          placeholder="https://webhook.site/... 或你的接收服务 URL"
         />
       </label>
       <button
@@ -84,15 +99,19 @@ export function MatrixDeliveryPanel({
         disabled={!publishJobsLength || isPublishing}
         onClick={onDeliver}
       >
-        {isPublishing ? "真实投递中..." : "真实投递到接收端"}
+        {isPublishing ? "发送中..." : "发送到测试接收端"}
       </button>
       <button
         type="button"
-        className="extension-delivery-button"
+        className={`extension-delivery-button ${hasMissingAccountConnections ? "needs-account" : ""}`}
         disabled={!publishJobsLength || isPublishing}
         onClick={onDeliverToExtension}
       >
-        {isPublishing ? "发送中..." : "发送到浏览器扩展"}
+        {isPublishing
+          ? "发送中..."
+          : hasMissingAccountConnections
+            ? "先确认登录，再发送草稿"
+            : "发送到浏览器扩展"}
       </button>
       <p className="delivery-note">
         浏览器扩展路线会复用用户自己的平台登录态，打开创作页并尝试填充草稿，最终发布仍需人工确认。
