@@ -1,4 +1,4 @@
-import type { ContentInput } from "../types/content";
+import type { AdaptedContent, ContentInput } from "../types/content";
 import {
   buildAgentPlan,
   buildAgentPlanFromRemote,
@@ -19,7 +19,49 @@ type AgentApiResponse =
       error: string;
     };
 
+type PlatformPackApiResponse =
+  | {
+      ok: true;
+      pack: RemotePlatformPack;
+      model?: string;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+export type PlatformPackBrief = {
+  topic: string;
+  intent: string;
+  audience: string;
+  trendSignals: string;
+};
+
+export type RemotePlatformDraft = {
+  platformId: string;
+  title?: string;
+  body?: string;
+  summary?: string;
+  tags?: string[];
+  strategyNotes?: string[];
+};
+
+export type RemotePlatformPack = {
+  reply?: string;
+  primaryPlatformId?: string;
+  drafts?: RemotePlatformDraft[];
+};
+
+export type GeneratedPlatformPack = {
+  source: "minimax";
+  reply: string;
+  primaryPlatformId: string;
+  drafts: Record<string, AdaptedContent>;
+  model?: string;
+};
+
 const defaultAgentApiUrl = "http://127.0.0.1:8787/api/agent-plan";
+const defaultPlatformPackApiUrl = "http://127.0.0.1:8787/api/platform-pack";
 const defaultAgentHealthUrl = "http://127.0.0.1:8787/api/agent-health";
 
 export type MiniMaxAgentStatus = {
@@ -109,5 +151,100 @@ export async function buildAgentPlanWithMiniMax(
     ].join("\n");
 
     return buildAgentPlan(contextPrompt, previousContent, preferences);
+  }
+}
+
+export async function buildPlatformPackWithMiniMax({
+  prompt,
+  brief,
+  previousContent,
+  conversation = [],
+  preferences,
+}: {
+  prompt: string;
+  brief: PlatformPackBrief;
+  previousContent?: ContentInput;
+  conversation?: AgentConversationMessage[];
+  preferences?: AgentPreferences;
+}): Promise<GeneratedPlatformPack | null> {
+  const endpoint =
+    import.meta.env.VITE_PLATFORM_PACK_API_URL?.trim() || defaultPlatformPackApiUrl;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        prompt,
+        brief,
+        previousContent,
+        conversation,
+        preferences,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Platform pack API returned HTTP ${response.status}`);
+    }
+
+    const data = (await response.json()) as PlatformPackApiResponse;
+
+    if (!data.ok) {
+      throw new Error(data.error);
+    }
+
+    const drafts = (data.pack.drafts ?? []).reduce<Record<string, AdaptedContent>>(
+      (collection, draft) => {
+        const platformId = String(draft.platformId ?? "").trim();
+
+        if (!platformId || !draft.title?.trim() || !draft.body?.trim()) {
+          return collection;
+        }
+
+        collection[platformId] = {
+          platformId,
+          title: draft.title.trim(),
+          body: draft.body.trim(),
+          summary: draft.summary?.trim(),
+          tags: Array.isArray(draft.tags)
+            ? draft.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 8)
+            : [],
+          strategyNotes: Array.isArray(draft.strategyNotes)
+            ? draft.strategyNotes
+                .map((note) => String(note).trim())
+                .filter(Boolean)
+                .slice(0, 6)
+            : [],
+        };
+
+        return collection;
+      },
+      {},
+    );
+
+    const draftIds = Object.keys(drafts);
+
+    if (!draftIds.length) {
+      throw new Error("Platform pack did not include usable drafts");
+    }
+
+    const primaryPlatformId =
+      data.pack.primaryPlatformId && drafts[data.pack.primaryPlatformId]
+        ? data.pack.primaryPlatformId
+        : draftIds[0];
+
+    return {
+      source: "minimax",
+      reply:
+        data.pack.reply?.trim() ||
+        "发布助理已经生成多平台成稿，你可以在右侧逐个平台检查标题、正文和标签。",
+      primaryPlatformId,
+      drafts,
+      model: data.model,
+    };
+  } catch {
+    return null;
   }
 }

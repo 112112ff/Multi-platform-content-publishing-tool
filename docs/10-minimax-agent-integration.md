@@ -10,10 +10,11 @@ MiniMax API key 不能写进前端代码，也不能提交到 GitHub。前端页
 
 ```txt
 Browser UI
+  -> http://127.0.0.1:8787/api/platform-pack
   -> http://127.0.0.1:8787/api/agent-plan
   -> scripts/minimax-proxy.mjs
   -> https://api.minimax.io/v1/chat/completions
-  -> MiniMax JSON plan
+  -> MiniMax JSON draft pack / plan
   -> Browser UI
 ```
 
@@ -35,6 +36,7 @@ MINIMAX_MODEL=MiniMax-M2.7
 MINIMAX_API_URL=https://api.minimax.io/v1/chat/completions
 MINIMAX_PROXY_PORT=8787
 VITE_AGENT_API_URL=http://127.0.0.1:8787/api/agent-plan
+VITE_PLATFORM_PACK_API_URL=http://127.0.0.1:8787/api/platform-pack
 ```
 
 3. 启动带 Agent 代理的开发环境：
@@ -64,7 +66,24 @@ MiniMax 被要求只返回 JSON：
 }
 ```
 
-前端会校验 `platformId`，并合并成本项目统一的 `AgentPlan`。不支持的平台会回退到本地 Agent。
+新增的 `/api/platform-pack` 会优先返回多平台成稿包，前端用它覆盖各平台预览内容：
+```json
+{
+  "reply": "多平台发布包已生成。",
+  "primaryPlatformId": "xiaohongshu",
+  "drafts": [
+    {
+      "platformId": "xiaohongshu",
+      "title": "可直接发布的标题",
+      "body": "可直接发布的正文",
+      "tags": ["标签1", "标签2"],
+      "strategyNotes": ["平台化原因", "发布前检查点"]
+    }
+  ]
+}
+```
+
+前端会校验 `platformId`，并合并成本项目统一的 `AgentPlan` 或多平台预览内容。不支持的平台会回退到本地 Agent。
 
 ## 安全要求
 

@@ -12,6 +12,7 @@ import { buildAgentOperationPlan, type PublishJob } from "./integrations/matrixO
 import { adaptContentForSelectedPlatforms, type PlatformPreview } from "./services/adaptContent";
 import {
   buildAgentPlanWithMiniMax,
+  buildPlatformPackWithMiniMax,
   checkMiniMaxAgentStatus,
   type MiniMaxAgentStatus,
 } from "./services/minimaxAgent";
@@ -344,6 +345,49 @@ function App() {
     ];
 
     pushMessages(userMessage, thinkingMessage);
+
+    const platformPack = await buildPlatformPackWithMiniMax({
+      prompt: confirmedPrompt,
+      brief: nextBrief,
+      previousContent: content,
+      conversation: conversationForPlan,
+      preferences,
+    });
+
+    if (platformPack) {
+      const primaryDraft =
+        platformPack.drafts[platformPack.primaryPlatformId] ??
+        Object.values(platformPack.drafts)[0];
+      const platformId = primaryDraft.platformId as ProductPlatformId;
+
+      setAgentStatus({
+        mode: "connected",
+        model: platformPack.model,
+        message: "发布助理已生成多平台成稿；如果增强生成失败，会自动切换离线规则。",
+      });
+      setActivePlatformId(platformId);
+      setContent({
+        title: primaryDraft.title,
+        body: primaryDraft.body,
+        tags: primaryDraft.tags,
+        coverUrl: content.coverUrl,
+        videoUrl: content.videoUrl,
+        selectedPlatformIds: defaultPlatformIds,
+      });
+      setPreviewOverrides(platformPack.drafts);
+      setPublishResults([]);
+      setFlowStep("publish");
+      setAccountModalOpen(false);
+      setIsAgentThinking(false);
+      pushMessages(
+        createMessage("assistant", platformPack.reply),
+        createMessage(
+          "assistant",
+          "右侧已经生成各平台可直接发布的标题、正文和标签。你可以逐个平台编辑预览，也可以把全部平台加入发布队列。",
+        ),
+      );
+      return;
+    }
 
     const plan = await buildAgentPlanWithMiniMax(
       confirmedPrompt,

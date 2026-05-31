@@ -30,7 +30,7 @@ ContentBridge 是一个面向创作者的多平台内容发布工具 MVP，对�
 项目已接入 MiniMax OpenAI 兼容 Chat Completions API。为了避免 API key 暴露，前端不会直接请求 MiniMax，而是调用本地代理：
 
 ```txt
-Browser UI -> local MiniMax proxy -> MiniMax API -> Agent JSON plan -> Browser UI
+Browser UI -> local MiniMax proxy -> MiniMax API -> multi-platform draft pack -> Browser UI
 ```
 
 启用方式：
@@ -40,6 +40,7 @@ npm install
 cp .env.example .env
 # 在 .env 中填写 MINIMAX_API_KEY
 # 中国大陆账号默认使用 https://api.minimaxi.com/v1/chat/completions
+# VITE_PLATFORM_PACK_API_URL 默认是 http://127.0.0.1:8787/api/platform-pack
 npm run dev:agent
 ```
 

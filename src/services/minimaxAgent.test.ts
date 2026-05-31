@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { buildAgentPlanWithMiniMax } from "./minimaxAgent";
+import { buildAgentPlanWithMiniMax, buildPlatformPackWithMiniMax } from "./minimaxAgent";
 
 describe("minimaxAgent", () => {
   beforeEach(() => {
@@ -43,5 +43,74 @@ describe("minimaxAgent", () => {
 
     expect(plan.source).toBe("local");
     expect(plan.platform.id).toBe("zhihu");
+  });
+
+  it("uses complete platform pack drafts when available", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          ok: true,
+          model: "test-model",
+          pack: {
+            reply: "multi-platform pack ready",
+            primaryPlatformId: "xiaohongshu",
+            drafts: [
+              {
+                platformId: "xiaohongshu",
+                title: "RedNote title",
+                body: "RedNote body",
+                tags: ["tag-a"],
+                strategyNotes: ["native note"],
+              },
+              {
+                platformId: "zhihu",
+                title: "Zhihu title",
+                body: "Zhihu body",
+                tags: ["tag-b"],
+              },
+            ],
+          },
+        }),
+      })),
+    );
+
+    const pack = await buildPlatformPackWithMiniMax({
+      prompt: "make a content pack",
+      brief: {
+        topic: "ByteDance growth",
+        intent: "explain",
+        audience: "creators",
+        trendSignals: "AI native apps",
+      },
+    });
+
+    expect(pack?.source).toBe("minimax");
+    expect(pack?.model).toBe("test-model");
+    expect(pack?.primaryPlatformId).toBe("xiaohongshu");
+    expect(pack?.drafts.xiaohongshu.body).toBe("RedNote body");
+    expect(pack?.drafts.zhihu.tags).toEqual(["tag-b"]);
+  });
+
+  it("returns null when platform pack generation is unavailable", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("network failed");
+      }),
+    );
+
+    const pack = await buildPlatformPackWithMiniMax({
+      prompt: "make a content pack",
+      brief: {
+        topic: "ByteDance growth",
+        intent: "explain",
+        audience: "creators",
+        trendSignals: "",
+      },
+    });
+
+    expect(pack).toBeNull();
   });
 });
