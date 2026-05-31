@@ -1,7 +1,11 @@
 import http from "node:http";
-import { readFileSync, existsSync } from "node:fs";
+import { createReadStream, readFileSync, existsSync, statSync } from "node:fs";
+import { extname, join, normalize, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const envPath = new URL("../.env", import.meta.url);
+const projectRoot = fileURLToPath(new URL("..", import.meta.url));
+const distDir = resolve(projectRoot, "dist");
 
 if (existsSync(envPath)) {
   const envFile = readFileSync(envPath, "utf8");
@@ -23,6 +27,19 @@ const host = process.env.MINIMAX_PROXY_HOST ?? "0.0.0.0";
 const model = process.env.MINIMAX_MODEL ?? "MiniMax-M2.7";
 const apiUrl = process.env.MINIMAX_API_URL ?? "https://api.minimaxi.com/v1/chat/completions";
 const apiKey = process.env.MINIMAX_API_KEY;
+const staticContentTypes = new Map([
+  [".html", "text/html; charset=utf-8"],
+  [".js", "text/javascript; charset=utf-8"],
+  [".css", "text/css; charset=utf-8"],
+  [".json", "application/json; charset=utf-8"],
+  [".svg", "image/svg+xml"],
+  [".png", "image/png"],
+  [".jpg", "image/jpeg"],
+  [".jpeg", "image/jpeg"],
+  [".webp", "image/webp"],
+  [".ico", "image/x-icon"],
+  [".txt", "text/plain; charset=utf-8"],
+]);
 
 const platforms = [
   "xiaohongshu",
@@ -78,6 +95,59 @@ const sendJson = (response, status, payload) => {
     "Access-Control-Allow-Headers": "Content-Type",
   });
   response.end(JSON.stringify(payload));
+};
+
+const sendStaticFile = (response, filePath, method = "GET") => {
+  const extension = extname(filePath).toLowerCase();
+  const contentType = staticContentTypes.get(extension) ?? "application/octet-stream";
+
+  response.writeHead(200, {
+    "Content-Type": contentType,
+    "Cache-Control": extension === ".html" ? "no-cache" : "public, max-age=31536000, immutable",
+  });
+
+  if (method === "HEAD") {
+    response.end();
+    return;
+  }
+
+  createReadStream(filePath).pipe(response);
+};
+
+const serveStaticApp = (request, response, requestPath) => {
+  if (!existsSync(distDir)) {
+    sendJson(response, 200, {
+      ok: true,
+      service: "ContentBridge full-stack service",
+      message: "Frontend dist is not built yet. Run npm run build before serving the app.",
+      endpoints: ["/api/agent-health", "/api/agent-plan", "/api/platform-pack"],
+      configured: Boolean(apiKey),
+      model,
+    });
+    return;
+  }
+
+  let decodedPath = "/";
+
+  try {
+    decodedPath = decodeURIComponent(requestPath);
+  } catch {
+    decodedPath = "/";
+  }
+
+  const normalizedPath = normalize(decodedPath)
+    .replace(/^[/\\]+/, "")
+    .replace(/^(\.\.[/\\])+/, "");
+  const candidatePath = resolve(join(distDir, normalizedPath || "index.html"));
+  const isInsideDist = candidatePath === distDir || candidatePath.startsWith(`${distDir}${sep}`);
+
+  let filePath = isInsideDist ? candidatePath : join(distDir, "index.html");
+
+  if (!existsSync(filePath) || !statSync(filePath).isFile()) {
+    filePath = join(distDir, "index.html");
+  }
+
+  sendStaticFile(response, filePath, request.method);
 };
 
 const extractJson = (value) => {
@@ -473,17 +543,6 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  if (request.method === "GET" && requestPath === "/") {
-    sendJson(response, 200, {
-      ok: true,
-      service: "ContentBridge MiniMax proxy",
-      endpoints: ["/api/agent-health", "/api/agent-plan", "/api/platform-pack"],
-      configured: Boolean(apiKey),
-      model,
-    });
-    return;
-  }
-
   if (request.method === "GET" && requestPath === "/api/agent-health") {
     sendJson(response, 200, {
       ok: true,
@@ -529,6 +588,11 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.method !== "POST" || requestPath !== "/api/agent-plan") {
+    if ((request.method === "GET" || request.method === "HEAD") && !requestPath.startsWith("/api/")) {
+      serveStaticApp(request, response, requestPath);
+      return;
+    }
+
     sendJson(response, 404, { ok: false, error: "Not found" });
     return;
   }

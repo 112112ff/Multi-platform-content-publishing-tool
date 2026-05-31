@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: contentbridge-agent-proxy
+    name: contentbridge
     env: node
     plan: free
-    buildCommand: npm install
-    startCommand: npm run agent:proxy
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
     healthCheckPath: /api/agent-health
     envVars:
       - key: NODE_VERSION

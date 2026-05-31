@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:agent": "node scripts/dev-with-agent.mjs",
+    "start": "node scripts/minimax-proxy.mjs",
     "agent:proxy": "node scripts/minimax-proxy.mjs",
     "agent:check": "node scripts/check-agent-proxy.mjs",
     "build": "tsc -b && vite build",

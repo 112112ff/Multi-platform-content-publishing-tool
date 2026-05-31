@@ -1,29 +1,29 @@
 # 线上 AI 代理部署说明
 
-本文档用于把 ContentBridge 的本地 MiniMax 代理部署成线上服务，让评审员下载项目后可以直接调用团队提供的 AI 生成能力。
+本文档用于把 ContentBridge 部署成一个线上可访问的完整服务。部署完成后，同一个域名会同时提供前端页面和 MiniMax 代理接口，让评审员可以直接打开线上 Demo，也可以下载仓库本地运行。
 
 ## 目标链路
 
 ```txt
 评审员浏览器
-  -> ContentBridge 前端
-  -> 团队线上代理 /api/platform-pack
+  -> https://你的服务域名/
+  -> 同域名 /api/platform-pack
   -> MiniMax Chat Completions API
   -> 多平台标题、正文、标签、发布策略
   -> ContentBridge 前端预览页
 ```
 
-API Key 只放在部署平台的环境变量里。GitHub 仓库只保存代理代码和代理 URL。
+API Key 只放在部署平台的环境变量里。GitHub 仓库只保存代理代码和公开服务 URL。
 
 ## 已内置的代理接口
 
-代理脚本位于：
+服务入口脚本位于：
 
 ```txt
 scripts/minimax-proxy.mjs
 ```
 
-提供三个接口：
+它会先托管 `dist/` 里的前端构建产物，再提供三个 API 接口：
 
 ```txt
 GET  /api/agent-health
@@ -43,8 +43,8 @@ POST /api/platform-pack
 4. Render 会读取 `render.yaml`，自动使用：
 
 ```txt
-Build Command: npm install
-Start Command: npm run agent:proxy
+Build Command: npm install && npm run build
+Start Command: npm run start
 Health Check Path: /api/agent-health
 ```
 
@@ -59,7 +59,7 @@ MINIMAX_API_URL=https://api.minimaxi.com/v1/chat/completions
 6. 部署成功后得到类似地址：
 
 ```txt
-https://contentbridge-agent-proxy.onrender.com
+https://contentbridge.onrender.com
 ```
 
 ## 验证代理是否可用
@@ -67,7 +67,7 @@ https://contentbridge-agent-proxy.onrender.com
 先访问健康接口：
 
 ```txt
-https://你的代理域名/api/agent-health
+https://你的服务域名/api/agent-health
 ```
 
 如果返回里有：
@@ -84,23 +84,31 @@ https://你的代理域名/api/agent-health
 也可以在本地运行完整检查：
 
 ```powershell
-$env:AGENT_PROXY_BASE_URL="https://你的代理域名"
+$env:AGENT_PROXY_BASE_URL="https://你的服务域名"
 npm run agent:check
 ```
 
 检查脚本会真实请求 `/api/platform-pack`，并确认 6 个平台都返回了可发布的标题和正文。
 
-## 让前端默认使用线上代理
+## 前端如何调用线上 API
 
-部署成功后，把前端环境变量指向线上代理：
+线上部署时，前端会自动请求同域名下的接口：
 
-```env
-VITE_AGENT_API_URL=https://你的代理域名/api/agent-plan
-VITE_PLATFORM_PACK_API_URL=https://你的代理域名/api/platform-pack
-VITE_AGENT_HEALTH_URL=https://你的代理域名/api/agent-health
+```txt
+/api/agent-plan
+/api/platform-pack
+/api/agent-health
 ```
 
-如果要让评审员下载后不配置 `.env` 也能直接用 AI，需要在拿到稳定代理域名后，把 `src/services/minimaxAgent.ts` 里的默认接口地址改成线上代理地址。注意，只能写代理 URL，不能写 MiniMax API Key。
+如果你想让本地开发环境也请求线上服务，可以额外创建 `.env`：
+
+```env
+VITE_AGENT_API_URL=https://你的服务域名/api/agent-plan
+VITE_PLATFORM_PACK_API_URL=https://你的服务域名/api/platform-pack
+VITE_AGENT_HEALTH_URL=https://你的服务域名/api/agent-health
+```
+
+默认情况下，`npm run dev` 本地开发会寻找 `http://127.0.0.1:8787` 的本地代理；线上构建会请求当前页面同域名的 `/api/*`。
 
 ## 失败兜底
 
