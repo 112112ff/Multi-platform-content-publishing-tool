@@ -5,6 +5,8 @@ import {
   createDraftPublishResult,
   createSummary,
   createValidationResult,
+  extractKeyPoints,
+  extractTopic,
   uniqueTags,
 } from "./adapterUtils";
 import { platformProfiles } from "./profiles";
@@ -14,14 +16,20 @@ export const bilibiliAdapter: PlatformAdapter = {
   name: platformProfiles.bilibili.name,
   profile: platformProfiles.bilibili,
   adapt(input: ContentInput) {
-    const title = input.title ? `【经验分享】${input.title}` : "B站视频标题";
+    const topic = extractTopic(input);
+    const keyPoints = extractKeyPoints(input, 4);
+    const title = `【深度拆解】${topic}`.slice(0, 48);
     const body = [
-      createSummary(input.body, 120),
+      `本期视频围绕「${topic}」展开，适合做成一个有章节、有案例、有总结的内容。`,
       "",
       "本期看点：",
-      "1. 先快速讲清楚问题背景",
-      "2. 再拆解可复用的方法",
-      "3. 最后给出适合收藏的实践清单",
+      ...keyPoints.map((point, index) => `${index + 1}. ${point}`),
+      "",
+      "章节建议：",
+      "00:00 先讲结论和为什么值得看",
+      "01:10 拆背景：这个话题为什么现在重要",
+      "03:20 拆方法：哪些经验可以迁移",
+      "06:00 做总结：给观众一张可收藏清单",
       "",
       "觉得有帮助的话，欢迎三连、收藏，也可以在评论区补充你的经验。",
     ].join("\n");

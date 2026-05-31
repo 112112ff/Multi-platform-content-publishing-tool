@@ -23,6 +23,31 @@ export const createSummary = (body: string, maxLength = 90) => {
     : compact;
 };
 
+export const extractTopic = (input: ContentInput) =>
+  (input.title || splitParagraphs(input.body)[0] || "内容主题")
+    .replace(/^如何看待/, "")
+    .replace(/^一篇讲透[:：]?/, "")
+    .replace(/^3 个马上能用的方法[:：]?/, "")
+    .trim();
+
+export const extractKeyPoints = (input: ContentInput, limit = 4) => {
+  const candidates = splitParagraphs(input.body)
+    .flatMap((paragraph) => paragraph.split(/[。！？；;]/))
+    .map((line) =>
+      line
+        .replace(/^[-\d\s.、]+/, "")
+        .replace(/^第[一二三四五六七八九十]步，?/, "")
+        .trim(),
+    )
+    .filter((line) => line.length >= 8);
+
+  return (candidates.length ? candidates : [input.title || "先明确核心观点，再按平台重写表达"])
+    .slice(0, limit);
+};
+
+export const numberedList = (items: string[]) =>
+  items.map((item, index) => `${index + 1}. ${item}`).join("\n");
+
 export const uniqueTags = (tags: string[], extras: string[] = []) =>
   Array.from(new Set([...tags, ...extras].map((tag) => tag.trim()).filter(Boolean)));
 

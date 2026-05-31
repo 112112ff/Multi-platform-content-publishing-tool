@@ -5,6 +5,8 @@ import {
   createDraftPublishResult,
   createSummary,
   createValidationResult,
+  extractKeyPoints,
+  extractTopic,
   uniqueTags,
 } from "./adapterUtils";
 import { platformProfiles } from "./profiles";
@@ -14,19 +16,22 @@ export const weiboAdapter: PlatformAdapter = {
   name: platformProfiles.weibo.name,
   profile: platformProfiles.weibo,
   adapt(input: ContentInput) {
-    const tags = uniqueTags(input.tags, ["AI工具", "学习效率", "经验分享"]);
+    const topic = extractTopic(input);
+    const keyPoints = extractKeyPoints(input, 2);
+    const tags = uniqueTags(input.tags, [topic.slice(0, 8), "热点讨论", "经验分享"]);
     const body = [
-      `${createSummary(input.body, 110)}`,
+      `${topic} 最值得讨论的不是结论本身，而是它背后的方法能不能迁移。`,
       "",
-      "一句话总结：工具只是放大器，真正重要的是把它用进学习流程。",
+      `一句话总结：${keyPoints[0] ?? createSummary(input.body, 80)}`,
+      keyPoints[1] ? `再补一句：${keyPoints[1]}` : "",
       "",
       tags.map((tag) => `#${tag}#`).join(" "),
-      "你会把 AI 用在预习、复习还是自测？",
+      `你觉得 ${topic} 最值得借鉴的是哪一点？`,
     ].join("\n");
 
     return buildAdaptedContent(
       "weibo",
-      input.title || "微博短内容标题",
+      `${topic} 的一个关键判断`.slice(0, 38),
       body,
       input,
       {

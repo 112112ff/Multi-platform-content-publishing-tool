@@ -5,6 +5,8 @@ import {
   createDraftPublishResult,
   createSummary,
   createValidationResult,
+  extractKeyPoints,
+  extractTopic,
   uniqueTags,
 } from "./adapterUtils";
 import { platformProfiles } from "./profiles";
@@ -14,22 +16,24 @@ export const douyinAdapter: PlatformAdapter = {
   name: platformProfiles.douyin.name,
   profile: platformProfiles.douyin,
   adapt(input: ContentInput) {
-    const tags = uniqueTags(input.tags, ["学习方法", "AI效率", "大学生"]);
+    const topic = extractTopic(input);
+    const keyPoints = extractKeyPoints(input, 3);
+    const tags = uniqueTags(input.tags, [topic.slice(0, 8), "短视频脚本", "干货"]);
     const body = [
-      "前三秒钩子：你是不是也把 AI 用成了搜索框？其实这样很浪费。",
+      `前三秒钩子：很多人聊 ${topic}，但真正能用上的其实就这 3 点。`,
       "",
       "口播脚本：",
-      `1. 先抛问题：${input.title || "AI 学习效率到底怎么提升？"}`,
-      `2. 给方法：${createSummary(input.body, 90)}`,
-      "3. 做总结：把 AI 放到预习、复盘、自测里，而不是直接替你思考。",
+      `1. 先抛问题：为什么 ${topic} 值得现在拿出来讲？`,
+      ...keyPoints.map((point, index) => `${index + 2}. 给方法 ${index + 1}：${point}`),
+      `最后总结：别只记住概念，要把 ${topic} 拆成自己今天能做的一步。`,
       "",
-      "镜头提示：开场用问题字幕，中段放流程卡片，结尾放三步清单。",
+      "镜头提示：开场用大字问题，中段用 3 张流程卡片，结尾放可截图清单。",
       "结尾引导：收藏这条，下次复习前直接照着做。",
     ].join("\n");
 
     return buildAdaptedContent(
       "douyin",
-      input.title ? `${input.title}，别再只会复制粘贴` : "抖音短视频脚本",
+      `${topic}，别只看热闹`.slice(0, 30),
       body,
       input,
       {

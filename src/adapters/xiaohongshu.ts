@@ -3,6 +3,8 @@ import type { PlatformAdapter } from "../types/platform";
 import {
   buildAdaptedContent,
   createDraftPublishResult,
+  extractKeyPoints,
+  extractTopic,
   createSummary,
   createValidationResult,
   uniqueTags,
@@ -14,19 +16,15 @@ export const xiaohongshuAdapter: PlatformAdapter = {
   name: platformProfiles.xiaohongshu.name,
   profile: platformProfiles.xiaohongshu,
   adapt(input: ContentInput) {
-    const title = input.title ? `${input.title}｜亲测有用` : "小红书笔记标题";
-    const shortLines = createSummary(input.body, 150)
-      .split(/[。！？]/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .slice(0, 5)
-      .map((line) => `- ${line}`);
-    const tags = uniqueTags(input.tags, ["学习效率", "AI工具", "自我提升"]);
+    const topic = extractTopic(input);
+    const title = `${topic}｜这几个点值得收藏`.slice(0, 32);
+    const shortLines = extractKeyPoints(input, 5).map((line) => `- ${line}`);
+    const tags = uniqueTags(input.tags, [topic.slice(0, 8), "经验分享", "收藏清单"]);
     const body = [
-      "最近试了一套很适合普通人的方法：",
+      `最近整理 ${topic}，发现最值得记住的是这几件事：`,
       ...shortLines,
       "",
-      "适合想提升效率、但不想被工具牵着走的人。",
+      "我的建议是：先收藏，再按自己的场景挑 1 个点试起来。",
       tags.map((tag) => `#${tag}`).join(" "),
     ].join("\n");
 
