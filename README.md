@@ -126,19 +126,22 @@ npm run test:run
 
 ## 文档导航
 
+产品与运行：
+
 - [项目总览](./docs/00-project-overview.md)
 - [产品与功能规划](./docs/01-product-plan.md)
 - [架构设计](./docs/02-architecture-plan.md)
-- [开发协作与 PR 规范](./docs/03-team-collaboration.md)
-- [提交规则与验收清单](./docs/04-delivery-rules-checklist.md)
-- [评审策略与得分点](./docs/05-review-strategy.md)
-- [Demo 录制脚本](./docs/06-demo-script.md)
-- [参赛提交说明](./docs/07-submission-brief.md)
 - [发布助理多平台发布流程](./docs/09-multi-platform-publishing-flow.md)
 - [MiniMax Agent 接入说明](./docs/10-minimax-agent-integration.md)
-- [线上 AI 代理部署说明](./docs/12-online-agent-proxy.md)
 - [运行与体验说明](./docs/11-user-runbook.md)
+- [线上 AI 代理部署说明](./docs/12-online-agent-proxy.md)
 - [浏览器扩展 Publisher Bridge](./extension/README.md)
+
+提交材料：
+
+- [开发协作与 PR 规范](./docs/03-team-collaboration.md)
+- [Demo 录制脚本](./docs/06-demo-script.md)
+- [参赛提交说明](./docs/07-submission-brief.md)
 
 ## 开发过程与 PR
 
