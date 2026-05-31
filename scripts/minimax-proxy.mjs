@@ -200,6 +200,7 @@ Content quality requirements:
 - If the user says "字节" with company/product/growth/internet context, understand it as ByteDance, not the computer byte unit.
 - If trend/reference material is provided, use it as the factual source.
 - If no real trend/reference material is provided, do not invent current rankings, dates, breaking news, or unverified metrics.
+- Do not add a specific year, date, ranking, "latest", or "trending now" claim unless the user explicitly provided that source material.
 - Still produce useful drafts by using evergreen angles, user-provided facts, and clearly marked suggestions.
 - Titles, bodies, and tags must be actual text the creator can publish after editing, not rules or placeholders.
 - Write in Chinese. Return pure JSON only. No Markdown fence, no explanation.
@@ -219,6 +220,9 @@ Return this JSON shape:
     }
   ]
 }
+
+The "drafts" array MUST contain exactly one usable draft for each of these 6 platformIds:
+${platforms.join(", ")}
 
 Publishing brief:
 ${JSON.stringify(brief ?? null)}
@@ -295,7 +299,7 @@ const requestMiniMax = async (payload) => {
   };
 };
 
-const requestPlatformPack = async (payload) => {
+const requestMiniMaxJson = async (content, maxTokens = 5200) => {
   if (!apiKey) {
     throw new Error("MINIMAX_API_KEY is not configured");
   }
@@ -316,11 +320,11 @@ const requestPlatformPack = async (payload) => {
         },
         {
           role: "user",
-          content: buildPlatformPackPrompt(payload),
+          content,
         },
       ],
       temperature: 0.42,
-      max_tokens: 5200,
+      max_tokens: maxTokens,
     }),
   });
 
@@ -331,15 +335,19 @@ const requestPlatformPack = async (payload) => {
   }
 
   const data = JSON.parse(text);
-  const content = data.choices?.[0]?.message?.content;
+  const messageContent = data.choices?.[0]?.message?.content;
 
-  if (!content || typeof content !== "string") {
+  if (!messageContent || typeof messageContent !== "string") {
     throw new Error("MiniMax response did not include message content");
   }
 
-  const pack = extractJson(content);
+  return extractJson(messageContent);
+};
+
+const normalizePlatformPackDrafts = (pack) => {
   const seen = new Set();
-  const drafts = (Array.isArray(pack.drafts) ? pack.drafts : [])
+
+  return (Array.isArray(pack.drafts) ? pack.drafts : [])
     .map((draft) => {
       const platformId = normalizePlatformId(draft.platformId);
       const title = String(draft.title ?? "").trim();
@@ -373,9 +381,72 @@ const requestPlatformPack = async (payload) => {
       };
     })
     .filter(Boolean);
+};
 
-  if (!drafts.length) {
-    throw new Error("MiniMax platform pack did not include usable drafts");
+const repairMissingPlatformDrafts = async ({ payload, drafts, missingPlatformIds }) => {
+  if (!missingPlatformIds.length) {
+    return drafts;
+  }
+
+  const repairPrompt = `
+You previously generated an incomplete ContentBridge multi-platform pack.
+Generate ONLY the missing platforms below as complete publish-ready Chinese drafts:
+${missingPlatformIds.join(", ")}
+
+Use the same quality rules:
+- Preserve the source manuscript facts, stance, examples, and information density.
+- Make each platform native and publish-ready.
+- Do not invent current rankings, dates, years, latest news, or unverified metrics.
+- Return pure JSON only with this shape:
+{
+  "drafts": [
+    {
+      "platformId": "${missingPlatformIds[0]}",
+      "title": "publish-ready title",
+      "body": "publish-ready body",
+      "summary": "optional summary",
+      "tags": ["tag1", "tag2"],
+      "strategyNotes": ["why it fits"]
+    }
+  ]
+}
+
+Original request payload:
+${JSON.stringify(payload)}
+`;
+
+  const repairPack = await requestMiniMaxJson(repairPrompt, 2200);
+  const repairedDrafts = normalizePlatformPackDrafts(repairPack).filter((draft) =>
+    missingPlatformIds.includes(draft.platformId),
+  );
+
+  return [...drafts, ...repairedDrafts];
+};
+
+const requestPlatformPack = async (payload) => {
+  if (!apiKey) {
+    throw new Error("MINIMAX_API_KEY is not configured");
+  }
+
+  const pack = await requestMiniMaxJson(buildPlatformPackPrompt(payload));
+  let drafts = normalizePlatformPackDrafts(pack);
+  let missingPlatformIds = platforms.filter(
+    (platformId) => !drafts.some((draft) => draft.platformId === platformId),
+  );
+
+  drafts = await repairMissingPlatformDrafts({
+    payload,
+    drafts,
+    missingPlatformIds,
+  });
+  missingPlatformIds = platforms.filter(
+    (platformId) => !drafts.some((draft) => draft.platformId === platformId),
+  );
+
+  if (missingPlatformIds.length) {
+    throw new Error(
+      `MiniMax platform pack did not include usable drafts for: ${missingPlatformIds.join(", ")}`,
+    );
   }
 
   const requestedPrimary = normalizePlatformId(pack.primaryPlatformId);
