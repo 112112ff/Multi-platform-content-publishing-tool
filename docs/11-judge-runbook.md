@@ -61,8 +61,7 @@ MINIMAX_API_KEY=自己的 MiniMax API Key
 MINIMAX_MODEL=MiniMax-M2.7
 MINIMAX_API_URL=https://api.minimaxi.com/v1/chat/completions
 MINIMAX_PROXY_PORT=8787
-VITE_AGENT_API_URL=http://127.0.0.1:8787/api/agent-plan
-VITE_PLATFORM_PACK_API_URL=http://127.0.0.1:8787/api/platform-pack
+VITE_AGENT_BASE_URL=http://127.0.0.1:8787
 ```
 
 说明：

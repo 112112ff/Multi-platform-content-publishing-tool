@@ -38,10 +38,10 @@ Render 免费实例冷启动可能需要约 50 秒，页面打开后可点击“
 
 如果需要让评审员下载项目后直接使用团队提供的 AI 生成能力，请先部署线上代理服务，再把前端默认接口指向该代理。部署步骤见 [docs/12-online-agent-proxy.md](./docs/12-online-agent-proxy.md)。仓库只应保存代理 URL，不能保存真实 API key。
 
-项目已接入 MiniMax OpenAI 兼容 Chat Completions API。为了避免 API key 暴露，前端不会直接请求 MiniMax，而是调用本地代理：
+项目已接入 MiniMax OpenAI 兼容 Chat Completions API。为了避免 API key 暴露，前端不会直接请求 MiniMax，而是调用代理服务：
 
 ```txt
-Browser UI -> local MiniMax proxy -> MiniMax API -> multi-platform draft pack -> Browser UI
+Browser UI -> Render / local MiniMax proxy -> MiniMax API -> multi-platform draft pack -> Browser UI
 ```
 
 启用方式：
@@ -51,7 +51,8 @@ npm install
 cp .env.example .env
 # 在 .env 中填写 MINIMAX_API_KEY
 # 中国大陆账号默认使用 https://api.minimaxi.com/v1/chat/completions
-# VITE_PLATFORM_PACK_API_URL 默认是 http://127.0.0.1:8787/api/platform-pack
+# npm run dev 默认连接 https://contentbridge.onrender.com
+# npm run dev:agent 会连接 http://127.0.0.1:8787
 npm run dev:agent
 ```
 
@@ -61,7 +62,9 @@ npm run dev:agent
 npm run dev
 ```
 
-如果未启动代理或未配置 key，页面会自动降级到本地离线规则。MiniMax 接入细节见 [docs/10-minimax-agent-integration.md](./docs/10-minimax-agent-integration.md)。
+普通 `npm run dev` 默认会连接团队已部署的线上代理 `https://contentbridge.onrender.com`，因此评审在另一台电脑下载仓库后也能直接体验增强生成。若需要强制使用本机代理，可运行 `npm run dev:agent`，或在 `.env` 中设置 `VITE_AGENT_BASE_URL=http://127.0.0.1:8787`。
+
+如果线上代理冷启动、未配置 key 或请求失败，页面会自动降级到本地离线规则。MiniMax 接入细节见 [docs/10-minimax-agent-integration.md](./docs/10-minimax-agent-integration.md)。
 
 > 安全说明：真实 API key 不应提交到 GitHub。仓库最终公开后，提交过的 key 可能被平台风控禁用，也会产生被他人调用的费用风险。评审可直接运行离线规则流程；如需体验 MiniMax 增强生成，请在本机 `.env` 填写自己的 key，或由团队在演示环境中单独配置环境变量。
 

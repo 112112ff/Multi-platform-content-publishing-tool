@@ -61,8 +61,15 @@ export type GeneratedPlatformPack = {
 };
 
 const localAgentOrigin = "http://127.0.0.1:8787";
+const onlineAgentOrigin = "https://contentbridge.onrender.com";
 
 const resolveDefaultAgentEndpoint = (path: string) => {
+  const configuredBaseUrl = import.meta.env.VITE_AGENT_BASE_URL?.trim();
+
+  if (configuredBaseUrl) {
+    return `${configuredBaseUrl.replace(/\/+$/, "")}${path}`;
+  }
+
   if (typeof window === "undefined") {
     return `${localAgentOrigin}${path}`;
   }
@@ -71,7 +78,7 @@ const resolveDefaultAgentEndpoint = (path: string) => {
     ["127.0.0.1", "localhost"].includes(window.location.hostname) &&
     window.location.port !== "8787";
 
-  return `${isLocalDev ? localAgentOrigin : window.location.origin}${path}`;
+  return `${isLocalDev ? onlineAgentOrigin : window.location.origin}${path}`;
 };
 
 const defaultAgentApiUrl = resolveDefaultAgentEndpoint("/api/agent-plan");

@@ -10,15 +10,15 @@ MiniMax API key 不能写进前端代码，也不能提交到 GitHub。前端页
 
 ```txt
 Browser UI
-  -> http://127.0.0.1:8787/api/platform-pack
-  -> http://127.0.0.1:8787/api/agent-plan
+  -> https://contentbridge.onrender.com/api/platform-pack
+  -> https://contentbridge.onrender.com/api/agent-plan
   -> scripts/minimax-proxy.mjs
   -> https://api.minimaxi.com/v1/chat/completions
   -> MiniMax JSON draft pack / plan
   -> Browser UI
 ```
 
-如果代理没有启动，或本地没有配置 `MINIMAX_API_KEY`，前端会自动降级到本地离线规则，项目仍然可以演示。
+普通 `npm run dev` 会默认使用团队的 Render 线上代理，方便评审在另一台电脑下载后直接体验。若代理冷启动、不可用或 key 未配置，前端会自动降级到本地离线规则，项目仍然可以演示。
 
 ## 本地启动方式
 
@@ -35,8 +35,7 @@ MINIMAX_API_KEY=你的 MiniMax API Key
 MINIMAX_MODEL=MiniMax-M2.7
 MINIMAX_API_URL=https://api.minimaxi.com/v1/chat/completions
 MINIMAX_PROXY_PORT=8787
-VITE_AGENT_API_URL=http://127.0.0.1:8787/api/agent-plan
-VITE_PLATFORM_PACK_API_URL=http://127.0.0.1:8787/api/platform-pack
+VITE_AGENT_BASE_URL=http://127.0.0.1:8787
 ```
 
 3. 启动带 Agent 代理的开发环境：

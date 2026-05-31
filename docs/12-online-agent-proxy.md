@@ -103,12 +103,10 @@ npm run agent:check
 如果你想让本地开发环境也请求线上服务，可以额外创建 `.env`：
 
 ```env
-VITE_AGENT_API_URL=https://你的服务域名/api/agent-plan
-VITE_PLATFORM_PACK_API_URL=https://你的服务域名/api/platform-pack
-VITE_AGENT_HEALTH_URL=https://你的服务域名/api/agent-health
+VITE_AGENT_BASE_URL=https://你的服务域名
 ```
 
-默认情况下，`npm run dev` 本地开发会寻找 `http://127.0.0.1:8787` 的本地代理；线上构建会请求当前页面同域名的 `/api/*`。
+默认情况下，`npm run dev` 本地开发会请求团队部署的 `https://contentbridge.onrender.com`；`npm run dev:agent` 会把 `VITE_AGENT_BASE_URL` 临时指向 `http://127.0.0.1:8787`；线上构建会请求当前页面同域名的 `/api/*`。
 
 ## 失败兜底
 
